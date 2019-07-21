@@ -4,7 +4,7 @@
 # file is allowed according to the terms of the MIT license. Debugged and (now
 # seriously) modIFied by Ronan Collobert, for Torch7
 
-set(BUNDLE_CMD "luajit" CACHE STRING "Use lua to do lua file bundle")
+set(BUNDLE_CMD luajit CACHE STRING "Use lua to do lua file bundle")
 set(BUNDLE_CMD_ARGS "" CACHE STRING "Bundle args for cross compile")
 set(BUNDLE_USE_LUA2C OFF CACHE BOOL "Use bin2c.lua do lua file bundle")
 
@@ -12,7 +12,9 @@ macro(LUA_add_custom_commands luajit_target)
   set(target_srcs "")
   foreach(file ${ARGN})
     if(${file} MATCHES ".*\\.lua$")
-      set(file "${CMAKE_CURRENT_SOURCE_DIR}/${file}")
+      if(NOT IS_ABSOLUTE ${file})
+        set(file "${CMAKE_CURRENT_SOURCE_DIR}/${file}")
+      endif()
       set(source_file ${file})
       string(LENGTH ${CMAKE_SOURCE_DIR} _luajit_source_dir_length)
       string(LENGTH ${file} _luajit_file_length)
@@ -32,13 +34,12 @@ macro(LUA_add_custom_commands luajit_target)
       add_custom_command(
         OUTPUT ${generated_file}
         MAIN_DEPENDENCY ${source_file}
-        DEPENDS lua
+        DEPENDS ${LUA_TARGET}
         COMMAND ${BUNDLE_CMD}
-                ARGS "${CMAKE_BINARY_DIR}/lua2c.lua" ${source_file}
-                      ${generated_file}
+                ARGS "lua2c.lua" ${source_file} ${generated_file}
         COMMENT
-          "lua ${CMAKE_BINARY_DIR}/lua2c.lua ${source_file} ${generated_file}"
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+          "${BUNDLE_CMD} $lua2c.lua ${source_file} ${generated_file}"
+        WORKING_DIRECTORY ${LUA_TARGET_PATH})
 
       get_filename_component(basedir ${generated_file} PATH)
       file(MAKE_DIRECTORY ${basedir})
@@ -68,7 +69,7 @@ macro(LUAJIT_add_custom_commands luajit_target)
       set(LJDUMP_OPT -b -a x64 -o windows)
     elseif(APPLE)
       set(LJDUMP_OPT -b -a x64 -o osx)
-    else
+    else()
       set(LJDUMP_OPT -b)
     endif()
   else()
@@ -80,7 +81,7 @@ macro(LUAJIT_add_custom_commands luajit_target)
       set(LJDUMP_OPT -b -a x86 -o windows)
     else()
       set(LJDUMP_OPT -b)
-    elseif()
+    endif()
   endif()
 
   foreach(file ${ARGN})
@@ -108,12 +109,12 @@ macro(LUAJIT_add_custom_commands luajit_target)
       add_custom_command(
         OUTPUT ${generated_file}
         MAIN_DEPENDENCY ${source_file}
-        DEPENDS luajit
+        DEPENDS ${LUA_TARGET}
         COMMAND ${BUNDLE_CMD} ARGS
           ${BUNDLE_CMD_ARGS}
           ${LJDUMP_OPT} ${source_file} ${generated_file}
-        COMMENT "${CMD} ${LJDUMP_OPT_STR} ${source_file} ${generated_file}"
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+        COMMENT "${BUNDLE_CMD} ${BUNDLE_CMD_ARGS} ${LJDUMP_OPT_STR} ${source_file} ${generated_file}"
+        WORKING_DIRECTORY ${LUA_TARGET_PATH})
       get_filename_component(basedir ${generated_file} PATH)
       file(MAKE_DIRECTORY ${basedir})
 
@@ -135,22 +136,22 @@ endmacro()
 if(BUNDLE_USE_LUA2C)
 
   macro(LUA_ADD_CUSTOM luajit_target)
-    luajit_add_custom_commands(${luajit_target} ${ARGN})
+    lua_add_custom_commands(${luajit_target} ${ARGN})
   endmacro()
 
   macro(LUA_ADD_EXECUTABLE luajit_target)
-    luajit_add_custom_commands(${luajit_target} ${ARGN})
+    lua_add_custom_commands(${luajit_target} ${ARGN})
     add_executable(${luajit_target} ${target_srcs})
   endmacro()
 
 else()
 
   macro(LUA_ADD_CUSTOM luajit_target)
-    lua_add_custom_commands(${luajit_target} ${ARGN})
+    luajit_add_custom_commands(${luajit_target} ${ARGN})
   endmacro()
 
   macro(LUA_ADD_EXECUTABLE luajit_target)
-    lua_add_custom_commands(${luajit_target} ${ARGN})
+    luajit_add_custom_commands(${luajit_target} ${ARGN})
     add_executable(${luajit_target} ${target_srcs})
   endmacro()
 

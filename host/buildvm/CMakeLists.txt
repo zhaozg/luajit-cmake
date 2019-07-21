@@ -20,7 +20,7 @@ endif()
 
 set(CXX_ARCH_FLAGS "")
 if(NOT (CMAKE_SIZEOF_VOID_P EQUAL ${TARGET_SIZE_OF_P}))
-    if (CMAKE_SIZEOF_VOID_P EQUAL 8)
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
       set(CXX_ARCH_FLAGS "-m32")
     else()
       set(CXX_ARCH_FLAGS "-m64")
@@ -47,5 +47,6 @@ target_include_directories(buildvm PRIVATE
   ${LUAJIT_DIR}/src
   ${LUAJIT_DIR}/src/host
   ${CMAKE_BINARY_DIR}
-  ${CMAKE_BINARY_DIR}/..
+  ${CMAKE_CURRENT_BINARY_DIR}/..
+  ${CMAKE_CURRENT_BINARY_DIR}/../../..
   ${CMAKE_CURRENT_BINARY_DIR})

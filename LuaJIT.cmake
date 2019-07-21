@@ -304,6 +304,7 @@ set(VM_DASC_PATH ${LJ_DIR}/vm_${DASM_ARCH}.dasc)
 add_custom_command(OUTPUT ${BUILDVM_ARCH_H}
   COMMAND ${HOST_WINE} ${MINILUA_PATH} ${DASM_PATH} ${DASM_FLAGS}
           -o ${BUILDVM_ARCH_H} ${VM_DASC_PATH}
+  COMMENT ${HOST_WINE} ${MINILUA_PATH}
   DEPENDS minilua)
 add_custom_target(buildvm_arch_h ALL
   DEPENDS ${BUILDVM_ARCH_H}
@@ -482,6 +483,7 @@ if("${CMAKE_SYSTEM_NAME}" MATCHES "(Open|Free|Net)BSD")
   target_link_libraries(luajit c++abi pthread)
 endif()
 target_compile_definitions(luajit PRIVATE ${LJ_DEFINITIONS})
+file(COPY ${LJ_DIR}/jit DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 set(luajit_headers
   ${LJ_DIR}/lauxlib.h
