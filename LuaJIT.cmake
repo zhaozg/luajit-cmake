@@ -11,16 +11,17 @@ endif()
 set(LJ_DIR ${LUAJIT_DIR}/src)
 
 list(APPEND CMAKE_MODULE_PATH
-  "${CMAKE_CURRENT_SOURCE_DIR}/cmake"
-  "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules"
+  "${CMAKE_CURRENT_LIST_DIR}/cmake"
+  "${CMAKE_CURRENT_LIST_DIR}/cmake/modules"
 )
 
 include(GNUInstallDirs)
 
 if(CMAKE_CROSSCOMPILING AND ${CMAKE_HOST_SYSTEM_NAME} STREQUAL Darwin)
-  include(Utils/Darwin.wine.cmake)
+  include(${CMAKE_CURRENT_LIST_DIR}/Utils/Darwin.wine.cmake)
 endif()
 
+set(LUAJIT_BUILD_ALAMG OFF CACHE BOOL "Enable alamg build mode")
 set(LUAJIT_ENABLE_GC64 OFF CACHE BOOL "Enable GC64 mode for x64")
 set(LUA_MULTILIB "lib" CACHE PATH "The name of lib directory.")
 set(LUAJIT_DISABLE_FFI OFF CACHE BOOL "Permanently disable the FFI extension")
@@ -40,13 +41,13 @@ set(MINILUA_PATH ${CMAKE_CURRENT_BINARY_DIR}/minilua/${MINILUA_EXE})
 
 # Build the minilua for host platform
 if(NOT CMAKE_CROSSCOMPILING)
-  add_subdirectory(host/minilua)
+  add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/host/minilua)
   set(MINILUA_PATH $<TARGET_FILE:minilua>)
 else()
   make_directory(${CMAKE_CURRENT_BINARY_DIR}/minilua)
 
   add_custom_command(OUTPUT ${MINILUA_PATH}
-    COMMAND ${CMAKE_COMMAND} ${CMAKE_CURRENT_SOURCE_DIR}/host/minilua
+    COMMAND ${CMAKE_COMMAND} ${CMAKE_CURRENT_LIST_DIR}/host/minilua
             -DLUAJIT_DIR=${LUAJIT_DIR} -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE}
     COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR}/minilua
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/minilua)
@@ -63,10 +64,10 @@ include(CheckTypeSize)
 include(CheckCXXCompilerFlag)
 check_cxx_compiler_flag(-fno-stack-protector NO_STACK_PROTECTOR_FLAG)
 
-include(modules/DetectArchitecture.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/modules/DetectArchitecture.cmake)
 detect_architecture(LJ_DETECTED_ARCH)
 
-include(modules/DetectFPUApi.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/modules/DetectFPUApi.cmake)
 detect_fpu_mode(LJ_DETECTED_FPU_MODE)
 detect_fpu_abi(LJ_DETECTED_FPU_ABI)
 
@@ -321,7 +322,7 @@ if("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows" OR WINE)
 endif()
 
 if(NOT CMAKE_CROSSCOMPILING)
-  add_subdirectory(host/buildvm)
+  add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/host/buildvm)
   set(BUILDVM_PATH $<TARGET_FILE:buildvm>)
   add_dependencies(buildvm buildvm_arch_h)
 else()
@@ -330,11 +331,11 @@ else()
   make_directory(${CMAKE_CURRENT_BINARY_DIR}/buildvm)
 
   add_custom_command(OUTPUT ${BUILDVM_PATH}
-    COMMAND ${CMAKE_COMMAND} ${CMAKE_CURRENT_SOURCE_DIR}/host/buildvm
+    COMMAND ${CMAKE_COMMAND} ${CMAKE_CURRENT_LIST_DIR}/host/buildvm
             -DLUAJIT_DIR=${LUAJIT_DIR} -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE}
             -DEXTRA_COMPILER_FLAGS_FILE=${BUILDVM_COMPILER_FLAGS_PATH}
     COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR}/buildvm
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/host/buildvm/CMakeLists.txt
+    DEPENDS ${CMAKE_CURRENT_LIST_DIR}/host/buildvm/CMakeLists.txt
     DEPENDS buildvm_arch_h
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/buildvm)
 
@@ -416,7 +417,11 @@ add_custom_target(lj_gen_folddef ALL
 file(GLOB_RECURSE SRC_LJCORE    "${LJ_DIR}/lj_*.c")
 file(GLOB_RECURSE SRC_LIBCORE   "${LJ_DIR}/lib_*.c")
 
-set(luajit_sources ${SRC_LIBCORE} ${SRC_LJCORE} ${LJ_VM_NAME})
+if(LUAJIT_BUILD_ALAMG)
+  set(luajit_sources ${LJ_DIR}/ljamalg.c ${LJ_VM_NAME})
+else()
+  set(luajit_sources ${SRC_LIBCORE} ${SRC_LJCORE} ${LJ_VM_NAME})
+endif()
 
 # Build the luajit static library
 add_library(libluajit ${luajit_sources})

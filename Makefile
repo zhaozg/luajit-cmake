@@ -24,6 +24,10 @@ build:
 clean:
 	@cmake -E remove_directory build
 
+lua:
+	cmake -H. -Bbuild -DLUA_DIR=$(shell pwd)/../lua
+	cmake --build build --config Release
+
 # Advance
 iOS:
 	cmake -H. -Bbuild ${CMAKE_OPTIONS} \
