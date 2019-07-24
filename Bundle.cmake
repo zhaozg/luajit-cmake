@@ -8,6 +8,10 @@ set(BUNDLE_CMD luajit CACHE STRING "Use lua to do lua file bundle")
 set(BUNDLE_CMD_ARGS "" CACHE STRING "Bundle args for cross compile")
 set(BUNDLE_USE_LUA2C OFF CACHE BOOL "Use bin2c.lua do lua file bundle")
 
+if(BUNDLE_USE_LUA2C)
+  file(COPY ${CMAKE_CURRENT_LIST_DIR}/lua2c.lua DESTINATION ${LUA_TARGET_PATH})
+endif()
+
 macro(LUA_add_custom_commands luajit_target)
   set(target_srcs "")
   foreach(file ${ARGN})
