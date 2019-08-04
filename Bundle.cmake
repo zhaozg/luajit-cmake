@@ -39,10 +39,9 @@ macro(LUA_add_custom_commands luajit_target)
         OUTPUT ${generated_file}
         MAIN_DEPENDENCY ${source_file}
         DEPENDS ${LUA_TARGET}
-        COMMAND ${BUNDLE_CMD}
-                ARGS "lua2c.lua" ${source_file} ${generated_file}
-        COMMENT
-          "${BUNDLE_CMD} $lua2c.lua ${source_file} ${generated_file}"
+        COMMAND ${BUNDLE_CMD} ARGS
+          ${BUNDLE_CMD_ARGS} lua2c.lua ${source_file} ${generated_file}
+        COMMENT "${BUNDLE_CMD} ${BUNDLE_CMD_ARGS} lua2c.lua ${source_file} ${generated_file}"
         WORKING_DIRECTORY ${LUA_TARGET_PATH})
 
       get_filename_component(basedir ${generated_file} PATH)
