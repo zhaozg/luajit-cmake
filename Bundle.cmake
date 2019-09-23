@@ -4,9 +4,15 @@
 # file is allowed according to the terms of the MIT license. Debugged and (now
 # seriously) modIFied by Ronan Collobert, for Torch7
 
-set(BUNDLE_CMD luajit CACHE STRING "Use lua to do lua file bundle")
-set(BUNDLE_CMD_ARGS "" CACHE STRING "Bundle args for cross compile")
-set(BUNDLE_USE_LUA2C OFF CACHE BOOL "Use bin2c.lua do lua file bundle")
+if(NOT DEFINED BUNDLE_CMD)
+  set(BUNDLE_CMD luajit CACHE STRING "Use lua to do lua file bundle")
+endif()
+if(NOT DEFINED BUNDLE_CMD_ARGS)
+  set(BUNDLE_CMD_ARGS "" CACHE STRING "Bundle args for cross compile")
+endif()
+if(NOT DEFINED BUNDLE_USE_LUA2C)
+  set(BUNDLE_USE_LUA2C OFF CACHE BOOL "Use bin2c.lua do lua file bundle")
+endif()
 
 if(BUNDLE_USE_LUA2C)
   file(COPY ${CMAKE_CURRENT_LIST_DIR}/lua2c.lua DESTINATION ${LUA_TARGET_PATH})
