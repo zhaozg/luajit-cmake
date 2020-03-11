@@ -74,6 +74,10 @@ detect_fpu_abi(LJ_DETECTED_FPU_ABI)
 find_library(LIBM_LIBRARIES NAMES m)
 find_library(LIBDL_LIBRARIES NAMES dl)
 
+if($ENV{LUA_TARGET_SHARED})
+  add_definitions(-fPIC)
+endif()
+
 set(TARGET_ARCH "")
 set(DASM_FLAGS "")
 
