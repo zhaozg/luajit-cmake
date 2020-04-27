@@ -102,7 +102,7 @@ macro(LUAJIT_add_custom_commands luajit_target)
   elseif(ANDROID)
     set(LJDUMP_OPT -b -a ${LJ_TARGET_ARCH} -o linux)
   else()
-    set(LJDUMP_OPT -b)
+    set(LJDUMP_OPT -b -a ${LJ_TARGET_ARCH})
   endif()
 
   foreach(file ${ARGN})
