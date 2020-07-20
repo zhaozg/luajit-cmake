@@ -465,6 +465,9 @@ endif()
 
 set(LJ_DEFINITIONS ${LJ_DEFINITIONS} -DLUA_MULTILIB="${LUA_MULTILIB}")
 target_compile_definitions(libluajit PRIVATE ${LJ_DEFINITIONS})
+if(IOS)
+    set_xcode_property(libluajit IPHONEOS_DEPLOYMENT_TARGET "9.0" "all")
+endif()
 
 if("${LJ_TARGET_ARCH}" STREQUAL "x86")
   if(CMAKE_COMPILER_IS_CLANGXX OR CMAKE_COMPILER_IS_GNUCXX)

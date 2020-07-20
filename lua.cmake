@@ -126,6 +126,9 @@ ENDIF()
 
 TARGET_LINK_LIBRARIES(lualib ${LIBS})
 SET_TARGET_PROPERTIES(lualib PROPERTIES OUTPUT_NAME "lua53")
+if(IOS)
+  set_xcode_property(lualib IPHONEOS_DEPLOYMENT_TARGET "9.0" "all")
+endif()
 LIST(APPEND LIB_LIST lualib)
 
 ADD_EXECUTABLE(lua ${LUA_DIR}/lua.c)
