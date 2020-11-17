@@ -15,9 +15,13 @@ list(APPEND CMAKE_MODULE_PATH
   "${CMAKE_CURRENT_LIST_DIR}/cmake/modules"
 )
 
-include(GNUInstallDirs)
+if (NOT WIN32)
+  include(GNUInstallDirs)
+endif ()
 
-if(CMAKE_CROSSCOMPILING AND ${CMAKE_HOST_SYSTEM_NAME} STREQUAL Darwin)
+if(CMAKE_CROSSCOMPILING
+    AND ${CMAKE_HOST_SYSTEM_NAME} STREQUAL Darwin
+    AND CMAKE_SIZEOF_VOID_P EQUAL 4)
   include(${CMAKE_CURRENT_LIST_DIR}/Utils/Darwin.wine.cmake)
 endif()
 
@@ -48,7 +52,7 @@ else()
 
   add_custom_command(OUTPUT ${MINILUA_PATH}
     COMMAND ${CMAKE_COMMAND} ${CMAKE_CURRENT_LIST_DIR}/host/minilua
-            -DLUAJIT_DIR=${LUAJIT_DIR} -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE}
+            -DLUAJIT_DIR=${LUAJIT_DIR}
     COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR}/minilua
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/minilua)
 
@@ -57,10 +61,10 @@ else()
   )
 endif()
 
+include(CheckTypeSize)
 include(TestBigEndian)
 test_big_endian(LJ_BIG_ENDIAN)
 
-include(CheckTypeSize)
 include(CheckCXXCompilerFlag)
 check_cxx_compiler_flag(-fno-stack-protector NO_STACK_PROTECTOR_FLAG)
 
@@ -338,7 +342,7 @@ else()
 
   add_custom_command(OUTPUT ${BUILDVM_PATH}
     COMMAND ${CMAKE_COMMAND} ${CMAKE_CURRENT_LIST_DIR}/host/buildvm
-            -DLUAJIT_DIR=${LUAJIT_DIR} -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE}
+            -DLUAJIT_DIR=${LUAJIT_DIR}
             -DEXTRA_COMPILER_FLAGS_FILE=${BUILDVM_COMPILER_FLAGS_PATH}
     COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR}/buildvm
     DEPENDS ${CMAKE_CURRENT_LIST_DIR}/host/buildvm/CMakeLists.txt
