@@ -177,6 +177,8 @@ endif()
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
   set(LJ_64 1)
+else()
+  message(FATAL "CMAKE_SIZEOF_VOID_P NOT SET")
 endif()
 
 set(LJ_GC64 ${LJ_64})
