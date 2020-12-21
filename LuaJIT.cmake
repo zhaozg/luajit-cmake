@@ -20,9 +20,17 @@ if (NOT WIN32)
 endif ()
 
 if(CMAKE_CROSSCOMPILING
-    AND ${CMAKE_HOST_SYSTEM_NAME} STREQUAL Darwin
-    AND CMAKE_SIZEOF_VOID_P EQUAL 4)
-  include(${CMAKE_CURRENT_LIST_DIR}/Utils/Darwin.wine.cmake)
+    AND ${CMAKE_HOST_SYSTEM_NAME} STREQUAL Darwin)
+  if (${CMAKE_SIZEOF_VOID_P} EQUAL 4)
+    if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
+      set(HOST_WINE wine)
+      set(TOOLCHAIN "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
+    else()
+      include(${CMAKE_CURRENT_LIST_DIR}/Utils/Darwin.wine.cmake)
+    endif()
+  else()
+    set(HOST_WINE)
+  endif()
 endif()
 
 set(LUAJIT_BUILD_ALAMG OFF CACHE BOOL "Enable alamg build mode")
@@ -38,7 +46,7 @@ set(LUAJIT_NUMMODE 0 CACHE STRING
 ")
 
 set(MINILUA_EXE minilua)
-if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL Windows OR WINE)
+if(HOST_WINE)
   set(MINILUA_EXE minilua.exe)
 endif()
 set(MINILUA_PATH ${CMAKE_CURRENT_BINARY_DIR}/minilua/${MINILUA_EXE})
@@ -51,8 +59,8 @@ else()
   make_directory(${CMAKE_CURRENT_BINARY_DIR}/minilua)
 
   add_custom_command(OUTPUT ${MINILUA_PATH}
-    COMMAND ${CMAKE_COMMAND} ${CMAKE_CURRENT_LIST_DIR}/host/minilua
-            -DLUAJIT_DIR=${LUAJIT_DIR}
+    COMMAND ${CMAKE_COMMAND} ${TOOLCHAIN}
+            ${CMAKE_CURRENT_LIST_DIR}/host/minilua -DLUAJIT_DIR=${LUAJIT_DIR}
     COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR}/minilua
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/minilua)
 
@@ -329,7 +337,7 @@ set(BUILDVM_COMPILER_FLAGS_PATH
 file(WRITE ${BUILDVM_COMPILER_FLAGS_PATH} "${BUILDVM_COMPILER_FLAGS}")
 
 set(BUILDVM_EXE buildvm)
-if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL Windows OR WINE)
+if(HOST_WINE)
   set(BUILDVM_EXE buildvm.exe)
 endif()
 
@@ -343,7 +351,8 @@ else()
   make_directory(${CMAKE_CURRENT_BINARY_DIR}/buildvm)
 
   add_custom_command(OUTPUT ${BUILDVM_PATH}
-    COMMAND ${CMAKE_COMMAND} ${CMAKE_CURRENT_LIST_DIR}/host/buildvm
+    COMMAND ${CMAKE_COMMAND} ${TOOLCHAIN}
+            ${CMAKE_CURRENT_LIST_DIR}/host/buildvm
             -DLUAJIT_DIR=${LUAJIT_DIR}
             -DEXTRA_COMPILER_FLAGS_FILE=${BUILDVM_COMPILER_FLAGS_PATH}
     COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR}/buildvm
