@@ -51,24 +51,6 @@ if(HOST_WINE)
 endif()
 set(MINILUA_PATH ${CMAKE_CURRENT_BINARY_DIR}/minilua/${MINILUA_EXE})
 
-# Build the minilua for host platform
-if(NOT CMAKE_CROSSCOMPILING)
-  add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/host/minilua)
-  set(MINILUA_PATH $<TARGET_FILE:minilua>)
-else()
-  make_directory(${CMAKE_CURRENT_BINARY_DIR}/minilua)
-
-  add_custom_command(OUTPUT ${MINILUA_PATH}
-    COMMAND ${CMAKE_COMMAND} ${TOOLCHAIN}
-            ${CMAKE_CURRENT_LIST_DIR}/host/minilua -DLUAJIT_DIR=${LUAJIT_DIR}
-    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR}/minilua
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/minilua)
-
-  add_custom_target(minilua ALL
-    DEPENDS ${MINILUA_PATH}
-  )
-endif()
-
 include(CheckTypeSize)
 include(TestBigEndian)
 test_big_endian(LJ_BIG_ENDIAN)
@@ -320,10 +302,28 @@ endif()
 
 set(VM_DASC_PATH ${LJ_DIR}/vm_${DASM_ARCH}.dasc)
 
+# Build the minilua for host platform
+if(NOT CMAKE_CROSSCOMPILING)
+  add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/host/minilua)
+  set(MINILUA_PATH $<TARGET_FILE:minilua>)
+else()
+  make_directory(${CMAKE_CURRENT_BINARY_DIR}/minilua)
+
+  add_custom_command(OUTPUT ${MINILUA_PATH}
+    COMMAND ${CMAKE_COMMAND} ${TOOLCHAIN} -DTARGET_ARCH=${TARGET_ARCH}
+            ${CMAKE_CURRENT_LIST_DIR}/host/minilua -DLUAJIT_DIR=${LUAJIT_DIR}
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR}/minilua
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/minilua)
+
+  add_custom_target(minilua ALL
+    DEPENDS ${MINILUA_PATH}
+  )
+endif()
+
+# Generate buildvm_arch.h
 add_custom_command(OUTPUT ${BUILDVM_ARCH_H}
   COMMAND ${HOST_WINE} ${MINILUA_PATH} ${DASM_PATH} ${DASM_FLAGS}
           -o ${BUILDVM_ARCH_H} ${VM_DASC_PATH}
-  COMMENT ${HOST_WINE} ${MINILUA_PATH}
   DEPENDS minilua)
 add_custom_target(buildvm_arch_h ALL
   DEPENDS ${BUILDVM_ARCH_H}
@@ -505,10 +505,13 @@ target_compile_options(libluajit PRIVATE ${LJ_COMPILE_OPTIONS})
 add_executable(luajit ${LJ_DIR}/luajit.c)
 target_link_libraries(luajit libluajit)
 if(APPLE AND NOT IOS)
-  target_link_libraries(luajit "-pagezero_size 10000" "-image_base 100000000")
+  set_target_properties(minilua PROPERTIES
+    LINK_FLAGS "-pagezero_size 10000 -image_base 100000000")
 endif()
-if(${CMAKE_SYSTEM_NAME} MATCHES "(Open|Free|Net)BSD")
+if(APPLE AND ${CMAKE_C_COMPILER_ID} STREQUAL "zig")
   target_link_libraries(luajit c++abi pthread)
+  set_target_properties(minilua PROPERTIES
+    LINK_FLAGS "-mmacosx-version-min=10.11")
 endif()
 target_compile_definitions(luajit PRIVATE ${LJ_DEFINITIONS})
 file(COPY ${LJ_DIR}/jit DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
