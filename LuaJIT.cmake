@@ -19,9 +19,11 @@ if (NOT WIN32)
   include(GNUInstallDirs)
 endif ()
 
+message(STATUS "${CMAKE_CROSSCOMPILING} ${CMAKE_HOST_SYSTEM_NAME}")
+message(STATUS "${CMAKE_SIZEOF_VOID_P} ${CMAKE_SYSTEM_NAME}")
 if(CMAKE_CROSSCOMPILING
     AND ${CMAKE_HOST_SYSTEM_NAME} STREQUAL Darwin)
-  if (${CMAKE_SIZEOF_VOID_P} EQUAL 4)
+  if (CMAKE_SIZEOF_VOID_P EQUAL 4)
     if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
       set(HOST_WINE wine)
       set(TOOLCHAIN "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
@@ -167,8 +169,6 @@ endif()
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
   set(LJ_64 1)
-else()
-  message(FATAL "CMAKE_SIZEOF_VOID_P NOT SET")
 endif()
 
 set(LJ_GC64 ${LJ_64})
@@ -310,8 +310,8 @@ else()
   make_directory(${CMAKE_CURRENT_BINARY_DIR}/minilua)
 
   add_custom_command(OUTPUT ${MINILUA_PATH}
-    COMMAND ${CMAKE_COMMAND} ${TOOLCHAIN} -DTARGET_ARCH=${TARGET_ARCH}
-            ${CMAKE_CURRENT_LIST_DIR}/host/minilua -DLUAJIT_DIR=${LUAJIT_DIR}
+    COMMAND ${CMAKE_COMMAND} ${TOOLCHAIN} -DLUAJIT_DIR=${LUAJIT_DIR}
+            ${CMAKE_CURRENT_LIST_DIR}/host/minilua
     COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR}/minilua
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/minilua)
 
@@ -509,7 +509,7 @@ if(APPLE AND NOT IOS)
     LINK_FLAGS "-pagezero_size 10000 -image_base 100000000")
 endif()
 if(APPLE AND ${CMAKE_C_COMPILER_ID} STREQUAL "zig")
-  target_link_libraries(luajit c++abi pthread)
+  target_link_libraries(luajit c pthread)
   set_target_properties(minilua PROPERTIES
     LINK_FLAGS "-mmacosx-version-min=10.11")
 endif()
