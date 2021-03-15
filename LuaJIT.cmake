@@ -24,9 +24,12 @@ message(STATUS "${CMAKE_SIZEOF_VOID_P} ${CMAKE_SYSTEM_NAME}")
 if(CMAKE_CROSSCOMPILING
     AND ${CMAKE_HOST_SYSTEM_NAME} STREQUAL Darwin)
   if (CMAKE_SIZEOF_VOID_P EQUAL 4)
-    if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
+    if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
       set(HOST_WINE wine)
       set(TOOLCHAIN "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
+      if(TARGET_SYS)
+        set(TARGET_SYS "-DTARGET_SYS=${TARGET_SYS}")
+      endif()
     else()
       include(${CMAKE_CURRENT_LIST_DIR}/Utils/Darwin.wine.cmake)
     endif()
@@ -310,7 +313,7 @@ else()
   make_directory(${CMAKE_CURRENT_BINARY_DIR}/minilua)
 
   add_custom_command(OUTPUT ${MINILUA_PATH}
-    COMMAND ${CMAKE_COMMAND} ${TOOLCHAIN} -DLUAJIT_DIR=${LUAJIT_DIR}
+    COMMAND ${CMAKE_COMMAND} ${TOOLCHAIN} ${TARGET_SYS} -DLUAJIT_DIR=${LUAJIT_DIR}
             ${CMAKE_CURRENT_LIST_DIR}/host/minilua
     COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR}/minilua
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/minilua)
@@ -351,7 +354,7 @@ else()
   make_directory(${CMAKE_CURRENT_BINARY_DIR}/buildvm)
 
   add_custom_command(OUTPUT ${BUILDVM_PATH}
-    COMMAND ${CMAKE_COMMAND} ${TOOLCHAIN}
+    COMMAND ${CMAKE_COMMAND} ${TOOLCHAIN} ${TARGET_SYS}
             ${CMAKE_CURRENT_LIST_DIR}/host/buildvm
             -DLUAJIT_DIR=${LUAJIT_DIR}
             -DEXTRA_COMPILER_FLAGS_FILE=${BUILDVM_COMPILER_FLAGS_PATH}
