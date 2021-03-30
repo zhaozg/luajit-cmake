@@ -50,6 +50,7 @@ set(LUAJIT_DISABLE_GC64 OFF CACHE BOOL "Disable GC64 mode for x64")
 set(LUA_MULTILIB "lib" CACHE PATH "The name of lib directory.")
 set(LUAJIT_DISABLE_FFI OFF CACHE BOOL "Permanently disable the FFI extension")
 set(LUAJIT_DISABLE_JIT OFF CACHE BOOL "Disable the JIT compiler")
+set(LUAJIT_NO_UNWIND OFF CACHE BOOL "Disable the UNWIND")
 set(LUAJIT_NUMMODE 0 CACHE STRING
 "Specify the number mode to use. Possible values:
   0 - Default mode
@@ -149,6 +150,11 @@ if(WIN32 OR MINGW)
 endif()
 
 set(LJ_DEFINITIONS "")
+if(NOT LUAJIT_NO_UNWIND AND NOT IOS)
+  set(LJ_DEFINITIONS ${LJ_DEFINITIONS} -DLUAJIT_UNWIND_EXTERNAL)
+  set(TARGET_ARCH ${TARGET_ARCH} -DLUAJIT_UNWIND_EXTERNAL)
+endif()
+
 if(IOS)
   set(LJ_DEFINITIONS ${LJ_DEFINITIONS} -DLJ_NO_SYSTEM=1)
 endif()
@@ -414,7 +420,7 @@ set(LJ_LIB_SOURCES
   ${LJ_DIR}/lib_base.c ${LJ_DIR}/lib_math.c ${LJ_DIR}/lib_bit.c
   ${LJ_DIR}/lib_string.c ${LJ_DIR}/lib_table.c ${LJ_DIR}/lib_io.c
   ${LJ_DIR}/lib_os.c ${LJ_DIR}/lib_package.c ${LJ_DIR}/lib_debug.c
-  ${LJ_DIR}/lib_jit.c ${LJ_DIR}/lib_ffi.c)
+  ${LJ_DIR}/lib_jit.c ${LJ_DIR}/lib_ffi.c ${LJ_DIR}/lib_buffer.c)
 add_custom_command(
   OUTPUT ${LJ_LIBDEF_PATH} ${LJ_VMDEF_PATH} ${LJ_RECDEF_PATH} ${LJ_FFDEF_PATH}
   OUTPUT ${LJ_BCDEF_PATH}
