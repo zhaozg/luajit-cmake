@@ -325,24 +325,19 @@ if(NOT CMAKE_CROSSCOMPILING)
 else()
   make_directory(${CMAKE_CURRENT_BINARY_DIR}/minilua)
 
-  add_custom_command(OUTPUT ${MINILUA_PATH}
+  add_custom_target(minilua)
+  add_custom_command(TARGET minilua PRE_BUILD
     COMMAND ${CMAKE_COMMAND} ${TOOLCHAIN} ${TARGET_SYS} -DLUAJIT_DIR=${LUAJIT_DIR}
             ${CMAKE_CURRENT_LIST_DIR}/host/minilua
     COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR}/minilua
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/minilua)
-
-  add_custom_target(minilua ALL
-    DEPENDS ${MINILUA_PATH}
-  )
 endif()
 
 # Generate buildvm_arch.h
-add_custom_command(OUTPUT ${BUILDVM_ARCH_H}
-  COMMAND ${HOST_WINE} ${MINILUA_PATH} ${DASM_PATH} ${DASM_FLAGS}
-          -o ${BUILDVM_ARCH_H} ${VM_DASC_PATH}
-  DEPENDS minilua)
-add_custom_target(buildvm_arch_h ALL
-  DEPENDS ${BUILDVM_ARCH_H}
+add_custom_target(buildvm_arch_h DEPENDS minilua)
+add_custom_command(TARGET buildvm_arch_h PRE_BUILD
+      COMMAND ${HOST_WINE} ${MINILUA_PATH} ${DASM_PATH} ${DASM_FLAGS}
+      -o ${BUILDVM_ARCH_H} ${VM_DASC_PATH}
 )
 
 # Build the buildvm for host platform
@@ -366,19 +361,16 @@ else()
 
   make_directory(${CMAKE_CURRENT_BINARY_DIR}/buildvm)
 
-  add_custom_command(OUTPUT ${BUILDVM_PATH}
+  add_custom_target(buildvm
+    DEPENDS ${CMAKE_CURRENT_LIST_DIR}/host/buildvm/CMakeLists.txt
+    DEPENDS buildvm_arch_h)
+  add_custom_command(TARGET buildvm PRE_BUILD
     COMMAND ${CMAKE_COMMAND} ${TOOLCHAIN} ${TARGET_SYS}
             ${CMAKE_CURRENT_LIST_DIR}/host/buildvm
             -DLUAJIT_DIR=${LUAJIT_DIR}
             -DEXTRA_COMPILER_FLAGS_FILE=${BUILDVM_COMPILER_FLAGS_PATH}
     COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR}/buildvm
-    DEPENDS ${CMAKE_CURRENT_LIST_DIR}/host/buildvm/CMakeLists.txt
-    DEPENDS buildvm_arch_h
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/buildvm)
-
-  add_custom_target(buildvm ALL
-    DEPENDS ${BUILDVM_PATH}
-  )
 endif()
 
 set(LJVM_MODE elfasm)
@@ -400,9 +392,9 @@ endif()
 
 set(LJ_VM_S_PATH ${CMAKE_CURRENT_BINARY_DIR}/${LJ_VM_NAME})
 add_custom_command(OUTPUT ${LJ_VM_S_PATH}
-  COMMAND ${HOST_WINE} ${BUILDVM_PATH} -m ${LJVM_MODE} -o ${LJ_VM_S_PATH}
-  DEPENDS buildvm
-  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/)
+        COMMAND ${HOST_WINE} ${BUILDVM_PATH} -m ${LJVM_MODE} -o ${LJ_VM_S_PATH}
+        DEPENDS buildvm
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/)
 
 if(APPLE AND CMAKE_OSX_DEPLOYMENT_TARGET AND NOT(CMAKE_CROSSCOMPILING))
   set_source_files_properties(${LJ_VM_NAME} PROPERTIES
@@ -449,7 +441,7 @@ add_custom_command(
   OUTPUT ${LJ_FOLDDEF_PATH}
   COMMAND ${HOST_WINE}
     ${BUILDVM_PATH} -m folddef -o ${LJ_FOLDDEF_PATH} ${LJ_FOLDDEF_SOURCE}
-  DEPENDS ${BUILDVM_PATH}
+  DEPENDS buildvm
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/)
 
 add_custom_target(lj_gen_folddef ALL
