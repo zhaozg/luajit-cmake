@@ -71,10 +71,10 @@ test_big_endian(LJ_BIG_ENDIAN)
 include(CheckCXXCompilerFlag)
 check_cxx_compiler_flag(-fno-stack-protector NO_STACK_PROTECTOR_FLAG)
 
-include(${CMAKE_CURRENT_LIST_DIR}/modules/DetectArchitecture.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/Modules/DetectArchitecture.cmake)
 detect_architecture(LJ_DETECTED_ARCH)
 
-include(${CMAKE_CURRENT_LIST_DIR}/modules/DetectFPUApi.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/Modules/DetectFPUApi.cmake)
 detect_fpu_mode(LJ_DETECTED_FPU_MODE)
 detect_fpu_abi(LJ_DETECTED_FPU_ABI)
 

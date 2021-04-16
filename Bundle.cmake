@@ -81,7 +81,7 @@ macro(LUA_add_custom_commands luajit_target)
 endmacro()
 
 if(NOT LJ_TARGET_ARCH)
-include(${CMAKE_CURRENT_LIST_DIR}/modules/DetectArchitecture.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/Modules/DetectArchitecture.cmake)
 detect_architecture(LJ_DETECTED_ARCH)
 if("${LJ_DETECTED_ARCH}" STREQUAL "x86")
   set(LJ_TARGET_ARCH "x86")
