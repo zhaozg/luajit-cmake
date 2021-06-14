@@ -85,6 +85,10 @@ if($ENV{LUA_TARGET_SHARED})
   add_definitions(-fPIC)
 endif()
 
+if(ANDROID)
+  set(LUAJIT_DISABLE_JIT ON)
+endif()
+
 set(TARGET_ARCH "")
 set(DASM_FLAGS "")
 
