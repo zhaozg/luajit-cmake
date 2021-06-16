@@ -512,7 +512,7 @@ target_compile_options(libluajit PRIVATE ${LJ_COMPILE_OPTIONS})
 # Build the luajit binary
 add_executable(luajit ${LJ_DIR}/luajit.c)
 target_link_libraries(luajit libluajit)
-if(APPLE AND NOT IOS)
+if(APPLE AND NOT IOS AND NOT ("${LJ_TARGET_ARCH}" STREQUAL "arm64"))
   set_target_properties(minilua PROPERTIES
     LINK_FLAGS "-pagezero_size 10000 -image_base 100000000")
 endif()
