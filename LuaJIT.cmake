@@ -532,7 +532,10 @@ if(APPLE AND ${CMAKE_C_COMPILER_ID} STREQUAL "zig")
   target_link_libraries(luajit c pthread)
   set_target_properties(minilua PROPERTIES
     LINK_FLAGS "-mmacosx-version-min=10.11")
+elseif(${CMAKE_C_COMPILER_ID} STREQUAL "zig")
+  target_link_libraries(luajit unwind)
 endif()
+
 target_compile_definitions(luajit PRIVATE ${LJ_DEFINITIONS})
 file(COPY ${LJ_DIR}/jit DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
