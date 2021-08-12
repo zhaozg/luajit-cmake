@@ -63,12 +63,12 @@ if(CMAKE_CROSSCOMPILING)
         "NYI build ${CMAKE_SYSTEM_NAME} for on ${CMAKE_HOST_SYSTEM_NAME}")
     endif()
   else()
-    if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL Darwin)
-      include(${CMAKE_CURRENT_LIST_DIR}/Utils/Darwin.wine.cmake)
-    else()
-      message(FATAL_ERROR
-        "NYI build ${CMAKE_SYSTEM_NAME} for on ${CMAKE_HOST_SYSTEM_NAME}")
-    endif()
+    #if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL Darwin)
+    #  include(${CMAKE_CURRENT_LIST_DIR}/Utils/Darwin.wine.cmake)
+    #else()
+    #  message(FATAL_ERROR
+    #    "NYI build ${CMAKE_SYSTEM_NAME} for on ${CMAKE_HOST_SYSTEM_NAME}")
+    #endif()
   endif()
 endif()
 
