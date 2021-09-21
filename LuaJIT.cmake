@@ -19,6 +19,7 @@ if (NOT WIN32)
   include(GNUInstallDirs)
 endif ()
 
+set(LUAJIT_BUILD_EXE ON CACHE BOOL "Enable luajit exe build")
 set(LUAJIT_BUILD_ALAMG OFF CACHE BOOL "Enable alamg build mode")
 set(LUAJIT_DISABLE_GC64 OFF CACHE BOOL "Disable GC64 mode for x64")
 set(LUA_MULTILIB "lib" CACHE PATH "The name of lib directory.")
@@ -572,25 +573,6 @@ endif()
 
 target_compile_options(libluajit PRIVATE ${LJ_COMPILE_OPTIONS})
 
-# Build the luajit binary
-add_executable(luajit ${LJ_DIR}/luajit.c)
-target_link_libraries(luajit libluajit)
-if(APPLE AND NOT IOS)
-  set_target_properties(minilua PROPERTIES
-    LINK_FLAGS "-pagezero_size 10000 -image_base 100000000")
-endif()
-if(APPLE AND ${CMAKE_C_COMPILER_ID} STREQUAL "zig")
-  target_link_libraries(luajit c pthread)
-  set_target_properties(minilua PROPERTIES
-    LINK_FLAGS "-mmacosx-version-min=10.11")
-endif()
-if(NOT WIN32 AND NOT LUAJIT_NO_UNWIND AND ${CMAKE_C_COMPILER_ID} STREQUAL zig)
-  target_link_libraries(luajit unwind)
-endif()
-
-target_compile_definitions(luajit PRIVATE ${LJ_DEFINITIONS})
-file(COPY ${LJ_DIR}/jit DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-
 set(luajit_headers
   ${LJ_DIR}/lauxlib.h
   ${LJ_DIR}/lua.h
@@ -602,4 +584,26 @@ install(TARGETS libluajit
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
-install(TARGETS luajit DESTINATION "${CMAKE_INSTALL_BINDIR}")
+# Build the luajit binary
+if (LUAJIT_BUILD_EXE)
+  add_executable(luajit ${LJ_DIR}/luajit.c)
+  target_link_libraries(luajit libluajit)
+  if(APPLE AND NOT IOS)
+    set_target_properties(minilua PROPERTIES
+      LINK_FLAGS "-pagezero_size 10000 -image_base 100000000")
+  endif()
+  if(APPLE AND ${CMAKE_C_COMPILER_ID} STREQUAL "zig")
+    target_link_libraries(luajit c pthread)
+    set_target_properties(minilua PROPERTIES
+      LINK_FLAGS "-mmacosx-version-min=10.11")
+  endif()
+  if(NOT WIN32 AND NOT LUAJIT_NO_UNWIND AND ${CMAKE_C_COMPILER_ID} STREQUAL zig)
+    target_link_libraries(luajit unwind)
+  endif()
+
+  target_compile_definitions(luajit PRIVATE ${LJ_DEFINITIONS})
+  file(COPY ${LJ_DIR}/jit DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
+  install(TARGETS luajit DESTINATION "${CMAKE_INSTALL_BINDIR}")
+endif()
+
