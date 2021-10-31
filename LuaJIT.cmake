@@ -47,6 +47,8 @@ if(CMAKE_CROSSCOMPILING)
   else()
     set(TARGET_64 FALSE)
   endif()
+  message(STATUS "HOST_64 is ${HOST_64}")
+  message(STATUS "TARGET_64 is ${TARGET_64}")
 
   if(HOST_64 AND NOT TARGET_64)
     if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL Darwin)
@@ -66,12 +68,12 @@ if(CMAKE_CROSSCOMPILING)
     endif()
   else()
     # build for Android need this
-    if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL Darwin)
-      include(${CMAKE_CURRENT_LIST_DIR}/Utils/Darwin.wine.cmake)
-    else()
-      message(FATAL_ERROR
-        "NYI build ${CMAKE_SYSTEM_NAME} for on ${CMAKE_HOST_SYSTEM_NAME}")
-    endif()
+    #if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL Darwin)
+    #  include(${CMAKE_CURRENT_LIST_DIR}/Utils/Darwin.wine.cmake)
+    #else()
+    #  message(FATAL_ERROR
+    #    "NYI build ${CMAKE_SYSTEM_NAME} for on ${CMAKE_HOST_SYSTEM_NAME}")
+    #endif()
   endif()
 endif()
 
