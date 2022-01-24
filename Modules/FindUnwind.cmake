@@ -34,23 +34,27 @@ elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "^ia64")
     set(LIBUNWIND_ARCH "ia64")
 endif()
 
-find_library (UNWIND_LIBRARY_PLATFORM NAMES "unwind-${LIBUNWIND_ARCH}" DOC "unwind library platform")
-
-if (UNWIND_LIBRARY_PLATFORM MATCHES "_FOUND")
+if (UNWIND_LIBRARY MATCHES "_FOUND")
+    set(UNWIND_LIBRARY unwind)
     set(HAVE_UNWIND_LIB ON)
-elseif (UNWIND_LIBRARY MATCHES "_FOUND")
-    set(HAVE_UNWIND_LIB ON)
+else()
+    find_library (UNWIND_LIBRARY NAMES "unwind-${LIBUNWIND_ARCH}" DOC "unwind library platform")
+    if (UNWIND_LIBRARY MATCHES "_FOUND")
+        set(HAVE_UNWIND_LIB ON)
+        set(UNWIND_LIBRARY unwind-${LIBUNWIND_ARCH})
+    endif ()
 endif()
 
-if (HAVE_UNWIND_LIB)
-    add_library(unwind INTERFACE IMPORTED)
-    set_target_properties(unwind PROPERTIES
-        INTERFACE_LINK_LIBRARIES "${UNWIND_LIBRARY};${UNWIND_LIBRARY_PLATFORM}"
-    )
+if (HAVE_UNWIND_LIB AND HAVE_UNWIND_H)
     set(unwind_FOUND ON)
 elseif(HAVE_UNWIND_H)
     if (CMAKE_SYSTEM_PROCESSOR STREQUAL aarch64
-        AND NOT ANDROID)
+        AND CMAKE_C_COMPILER_ID STREQUAL zig
+        AND NOT ANDROID
+        AND NOT IOS)
+        set(UNWIND_LIBRARY unwind)
         set(HAVE_UNWIND_LIB ON)
     endif()
-endif()
+else ()
+    unset(UNWIND_LIBRARY)
+endif ()
