@@ -7,6 +7,8 @@
 # MIT license.
 # Debugged and (now seriously) modIFied by Ronan Collobert, for Torch7
 
+cmake_minimum_required(VERSION 3.0)
+
 PROJECT(lua C)
 
 IF(NOT LUA_DIR)
@@ -53,6 +55,10 @@ CHECK_LIBRARY_EXISTS(m sin "" LUA_USE_LIBM)
 IF( LUA_USE_LIBM )
   LIST( APPEND LIBS m )
 ENDIF()
+
+if($ENV{LUA_TARGET_SHARED})
+  add_definitions(-fPIC)
+endif()
 
 ## SOURCES
 SET(SRC_LUALIB
@@ -136,9 +142,6 @@ IF(WIN32)
   TARGET_LINK_LIBRARIES(lua lualib)
 ELSE()
   TARGET_LINK_LIBRARIES(lua lualib ${LIBS})
-  SET_TARGET_PROPERTIES(lua PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}
-    ENABLE_EXPORTS ON)
 ENDIF()
 
 SET(lua_headers
@@ -146,11 +149,27 @@ SET(lua_headers
   ${LUA_DIR}/lua.h
   ${LUA_DIR}/luaconf.h
   ${LUA_DIR}/lualib.h)
-INSTALL(FILES ${lua_headers} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/lua)
-INSTALL(TARGETS lualib
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
-  IF(NOT IOS)
-  INSTALL(TARGETS lua DESTINATION ${CMAKE_INSTALL_BINDIR})
-ENDIF()
+
+## FIXME:
+
+## USE_64BITS= cmake -H. -BLinux -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=MinSizeRel
+## CMake Error at /Users/zhaozg/work/lua-forge/cmake/lua.cmake:154 (INSTALL):
+##   INSTALL TARGETS given no ARCHIVE DESTINATION for static library target
+##   "lualib".
+## Call Stack (most recent call first):
+##   /Users/zhaozg/work/lua-forge/CMakeLists.txt:88 (include)
+##
+##
+## CMake Error at /Users/zhaozg/work/lua-forge/cmake/lua.cmake:159 (INSTALL):
+##   INSTALL TARGETS given no RUNTIME DESTINATION for executable target "lua".
+## Call Stack (most recent call first):
+##   /Users/zhaozg/work/lua-forge/CMakeLists.txt:88 (include)
+
+
+# INSTALL(FILES ${lua_headers} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/lua)
+# INSTALL(TARGETS lualib DESTINATION ${CMAKE_INSTALL_LIBDIR})
+#
+# IF(NOT IOS)
+#   INSTALL(TARGETS lua DESTINATION ${CMAKE_INSTALL_BINDIR})
+# ENDIF()
