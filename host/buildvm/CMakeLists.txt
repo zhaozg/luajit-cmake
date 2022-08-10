@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 
-project(buildvm)
+project(buildvm C)
 
 set(EXTRA_COMPILER_FLAGS_FILE ""
   CACHE PATH "Location of a file to specify extra compiler flags.")

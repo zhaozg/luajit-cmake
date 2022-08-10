@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 
-project(luajit)
+project(luajit C)
 set(can_use_assembler TRUE)
 enable_language(ASM)
 
@@ -86,9 +86,6 @@ set(MINILUA_PATH ${CMAKE_CURRENT_BINARY_DIR}/minilua/${MINILUA_EXE})
 include(CheckTypeSize)
 include(TestBigEndian)
 test_big_endian(LJ_BIG_ENDIAN)
-
-include(CheckCXXCompilerFlag)
-check_cxx_compiler_flag(-fno-stack-protector NO_STACK_PROTECTOR_FLAG)
 
 include(${CMAKE_CURRENT_LIST_DIR}/Modules/DetectArchitecture.cmake)
 detect_architecture(LJ_DETECTED_ARCH)

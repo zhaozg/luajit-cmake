@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 
-project(minilua)
+project(minilua C)
 
 find_library(LIBM_LIBRARIES NAMES m)
 
