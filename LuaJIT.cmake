@@ -49,7 +49,7 @@ if(CMAKE_CROSSCOMPILING)
   message(STATUS "HOST_64 is ${HOST_64}")
   message(STATUS "TARGET_64 is ${TARGET_64}")
 
-  if(HOST_64 AND NOT TARGET_64)
+  if(HOST_64)
     if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL Darwin)
       if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
         set(HOST_WINE wine)

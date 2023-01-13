@@ -54,7 +54,7 @@ if(TARGET_SYS AND NOT ZIG_INIT)
       set(CMAKE_C_LINK_LIBRARY_SUFFIX "")
       set(WIN32 1)
       if (${ARCH} STREQUAL x86)
-        set(ZIG_HACK "-fno-lto")
+        set(ZIG_HACK "--fno-lto")
       endif()
     endif()
 
