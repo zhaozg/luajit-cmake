@@ -84,9 +84,9 @@ W [[
 
 LUALIB_API int luaopen_]](basename(src))[[(lua_State *L) {
     size_t len = ]](#bytecode)[[;
-    const char chunk[] = ]](write_chunk(bytecode))[[;
+    const unsigned char chunk[] = ]](write_chunk(bytecode))[[;
 
-    if (luaL_loadbuffer(L, chunk, len, ]](escapefn(src))[[) != 0)
+    if (luaL_loadbuffer(L, (const char*)chunk, len, ]](escapefn(src))[[) != 0)
         lua_error(L);
     lua_insert(L, 1);
     lua_call(L, lua_gettop(L)-1, LUA_MULTRET);
