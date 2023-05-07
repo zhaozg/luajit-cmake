@@ -58,8 +58,6 @@ if(CMAKE_CROSSCOMPILING)
           set(TARGET_SYS "-DTARGET_SYS=${TARGET_SYS}")
         endif()
         include(${CMAKE_CURRENT_LIST_DIR}/Utils/Darwin.wine.cmake)
-      else()
-        include(${CMAKE_CURRENT_LIST_DIR}/Utils/Darwin.wine.cmake)
       endif()
     else()
       message(FATAL_ERROR
