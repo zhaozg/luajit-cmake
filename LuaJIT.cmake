@@ -91,8 +91,10 @@ include(${CMAKE_CURRENT_LIST_DIR}/Modules/DetectFPUApi.cmake)
 detect_fpu_mode(LJ_DETECTED_FPU_MODE)
 detect_fpu_abi(LJ_DETECTED_FPU_ABI)
 
-find_library(LIBM_LIBRARIES NAMES m)
-find_library(LIBDL_LIBRARIES NAMES dl)
+if(NOT ${CMAKE_SYSTEM_NAME} STREQUAL Darwin)
+  find_library(LIBM_LIBRARIES NAMES m)
+  find_library(LIBDL_LIBRARIES NAMES dl)
+endif()
 
 if($ENV{LUA_TARGET_SHARED})
   add_definitions(-fPIC)

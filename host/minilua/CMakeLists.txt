@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 3.0)
 
 project(minilua C)
 
-find_library(LIBM_LIBRARIES NAMES m)
+if(NOT ${CMAKE_SYSTEM_NAME} STREQUAL Darwin)
+  find_library(LIBM_LIBRARIES NAMES m)
+endif()
 
 add_executable(minilua ${LUAJIT_DIR}/src/host/minilua.c)
 if(LIBM_LIBRARIES)

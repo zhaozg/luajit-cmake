@@ -27,7 +27,9 @@ if(NOT (CMAKE_SIZEOF_VOID_P EQUAL ${TARGET_SIZE_OF_P}))
     endif()
 endif()
 
-find_library(LIBM_LIBRARIES NAMES m)
+if(NOT ${CMAKE_SYSTEM_NAME} STREQUAL Darwin)
+  find_library(LIBM_LIBRARIES NAMES m)
+endif()
 
 add_executable(buildvm
   ${LUAJIT_DIR}/src/host/buildvm.c
