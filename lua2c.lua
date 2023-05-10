@@ -18,7 +18,7 @@ local src, gen = ...
 local _, jit = pcall(require, "jit") if jit and jit.off then jit.off() end
 
 local chunk = assert(loadfile(src, nil, '@'..src))
-local bytecode = string.dump(chunk)
+local bytecode = string.dump(chunk, true)
 
 local function basename(name)
    local base = name
@@ -95,5 +95,4 @@ LUALIB_API int luaopen_]](basename(src))[[(lua_State *L) {
 
 ]]
 io.close()
-
 
