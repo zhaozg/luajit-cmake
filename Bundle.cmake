@@ -22,8 +22,20 @@ else()
  message(STATUS "LITTLE_ENDIAN")
 endif()
 
+if(NOT DEFINED BUNDLE_DEBUG)
+  string(TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_LOWER)
+  if(${CMAKE_BUILD_TYPE_LOWER} STREQUAL "debug"
+      OR ${CMAKE_BUILD_TYPE_LOWER} STREQUAL "relwithdebinfo")
+    set(BUNDLE_DEBUG ON)
+  endif()
+endif()
+
 if(BUNDLE_USE_LUA2C)
   file(COPY ${CMAKE_CURRENT_LIST_DIR}/lua2c.lua DESTINATION ${LUA_TARGET_PATH})
+
+  if (BUNDLE_DEBUG)
+    set(BUNDLE_ENABLE_DEBUG "-g")
+  endif ()
 
   macro(LUA_add_custom_commands luajit_target)
     set(target_srcs "")
@@ -53,8 +65,8 @@ if(BUNDLE_USE_LUA2C)
           MAIN_DEPENDENCY ${source_file}
           DEPENDS ${LUA_TARGET}
           COMMAND ${BUNDLE_CMD} ARGS
-            ${BUNDLE_CMD_ARGS} lua2c.lua ${source_file} ${generated_file}
-          COMMENT "${BUNDLE_CMD} ${BUNDLE_CMD_ARGS} lua2c.lua ${source_file} ${generated_file}"
+            ${BUNDLE_CMD_ARGS} lua2c.lua ${BUNDLE_ENABLE_DEBUG} ${source_file} ${generated_file}
+          COMMENT "${BUNDLE_CMD} ${BUNDLE_CMD_ARGS} lua2c.lua ${BUNDLE_ENABLE_DEBUG} ${source_file} ${generated_file}"
           WORKING_DIRECTORY ${LUA_TARGET_PATH})
 
         get_filename_component(basedir ${generated_file} PATH)
@@ -121,14 +133,17 @@ else()
     set(target_srcs "")
 
     if(WIN32)
-      set(LJDUMP_OPT -b -g -a ${LJ_TARGET_ARCH} -o windows)
+      set(LJDUMP_OPT -b -a ${LJ_TARGET_ARCH} -o windows)
     elseif(APPLE)
-      set(LJDUMP_OPT -b -g -a ${LJ_TARGET_ARCH} -o osx)
+      set(LJDUMP_OPT -b -a ${LJ_TARGET_ARCH} -o osx)
     elseif(ANDROID OR ${CMAKE_SYSTEM_NAME} STREQUAL Linux)
-      set(LJDUMP_OPT -b -g -a ${LJ_TARGET_ARCH} -o linux)
+      set(LJDUMP_OPT -b -a ${LJ_TARGET_ARCH} -o linux)
     else()
-      set(LJDUMP_OPT -b -g -a ${LJ_TARGET_ARCH})
+      set(LJDUMP_OPT -b -a ${LJ_TARGET_ARCH})
     endif()
+    if (BUNDLE_DEBUG)
+      list(APPEND LJDUMP_OPT -g)
+    endif ()
 
     foreach(file ${ARGN})
       if(${file} MATCHES ".*\\.lua$")

@@ -14,11 +14,28 @@
   limitations under the License.
 s
 ]]
-local src, gen = ...
-local _, jit = pcall(require, "jit") if jit and jit.off then jit.off() end
 
-local chunk = assert(loadfile(src, nil, '@'..src))
-local bytecode = string.dump(chunk, true)
+local function usage()
+  io.stderr:write[[
+Lua bytecode: lua2c.lua [-g] [-n name] input output
+  -g        Keep debug info.
+  -n name   Set module name (default: auto-detect from input name).
+  -h        Print this usage.
+]]
+    os.exit(1)
+end
+
+local function check(ok, ...)
+    if ok then return ok, ... end
+    io.stderr:write("lua2c.lua: ", ...)
+    io.stderr:write("\n")
+    os.exit(1)
+end
+
+local function checkmodname(str)
+    check(str:match("^[%w_.%-]+$"), "bad module name")
+    return str:gsub("[%.%-]", "_")
+end
 
 local function basename(name)
    local base = name
@@ -31,6 +48,50 @@ local function basename(name)
    end
    return base
 end
+
+
+local function parsearg(...)
+  local arg = {...}
+  local n = 1
+  local ctx = {
+    strip = true,
+    modname = false,
+  }
+
+  while n <= #arg do
+    local a = arg[n]
+    if type(a) == "string" and a:sub(1, 1) == "-" then
+      table.remove(arg, n)
+      if a == "-g" then
+        ctx.strip = false
+      elseif a == '-n' then
+        if arg[n] == nil then
+          usage()
+        end
+        ctx.modname = checkmodname(table.remove(arg, n))
+      else
+        usage()
+      end
+	  end
+    n = n + 1
+	end
+
+  if n ~= 3 then
+    usage()
+  end
+
+  if not ctx.modname then
+    ctx.modname = basename(arg[1])
+  end
+
+  return arg[1], arg[2], ctx
+end
+
+local src, gen, opts = parsearg(...)
+local _, jit = pcall(require, "jit") if jit and jit.off then jit.off() end
+
+local chunk = assert(loadfile(src, nil, '@'..src))
+local bytecode = string.dump(chunk, opts.strip)
 
 local function escapefn(name)
    return '"'..
@@ -82,7 +143,7 @@ W [[
 #include <lua.h>
 #include <lauxlib.h>
 
-LUALIB_API int luaopen_]](basename(src))[[(lua_State *L) {
+LUALIB_API int luaopen_]](opts.modname)[[(lua_State *L) {
     size_t len = ]](#bytecode)[[;
     const unsigned char chunk[] = ]](write_chunk(bytecode))[[;
 
