@@ -93,7 +93,11 @@ local _, jit = pcall(require, "jit") if jit and jit.off then jit.off() end
 local chunk = assert(loadfile(src, nil, '@'..src))
 local bytecode = string.dump(chunk, opts.strip)
 
-local function escapefn(name)
+local function escapefn(opt, name)
+   if opt.strip and name:match "[/\\]" then
+      name = name:match("^.*[/\\](.*)$")
+   end
+   name = name:sub(-56, -1)
    return '"'..
       name:gsub('\\', '\\\\')
           :gsub('\n', '\\n')
@@ -147,7 +151,7 @@ LUALIB_API int luaopen_]](opts.modname)[[(lua_State *L) {
     size_t len = ]](#bytecode)[[;
     const unsigned char chunk[] = ]](write_chunk(bytecode))[[;
 
-    if (luaL_loadbuffer(L, (const char*)chunk, len, ]](escapefn(src))[[) != 0)
+    if (luaL_loadbuffer(L, (const char*)chunk, len, ]](escapefn(opts, src))[[) != 0)
         lua_error(L);
     lua_insert(L, 1);
     lua_call(L, lua_gettop(L)-1, LUA_MULTRET);
