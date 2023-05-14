@@ -18,6 +18,8 @@ if(LIBFFI_DIR)
     set(BUILD_SHARED_LUA_FFI OFF)
 
     file(GLOB FFI_C_SOURCES "${LIBFFI_DIR}/src/*.c")
+    list(REMOVE_ITEM FFI_C_SOURCES "${LIBFFI_DIR}/src/dlmalloc.c")
+    list(REMOVE_ITEM FFI_C_SOURCES "${LIBFFI_DIR}/src/java_raw_api.c")
 
     # config variables for ffi.h.in
     set(VERSION 3.4.4)
