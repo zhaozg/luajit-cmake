@@ -4,7 +4,7 @@
      #if defined(lua_getlocaledecpoint)
      #undef lua_getlocaledecpoint
      #endif
-  
+
      #define lua_getlocaledecpoint()        ('.')
   #endif
   #if __ANDROID_API__ < 25

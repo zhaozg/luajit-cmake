@@ -5,8 +5,16 @@
 # seriously) modIFied by Ronan Collobert, for Torch7
 
 if(NOT DEFINED BUNDLE_CMD)
-  set(BUNDLE_CMD luajit CACHE STRING "Use lua to do lua file bundle")
+  if(BUNDLE_USE_LUA2C)
+    set(BUNDLE_CMD lua CACHE STRING "Use lua to do lua file bundle")
+  else()
+    set(BUNDLE_CMD luajit CACHE STRING "Use luajit to do lua file bundle")
+  endif()
 endif()
+if(DEFINED ENV{BUNDLE_CMD})
+  set(BUNDLE_CMD $ENV{BUNDLE_CMD})
+endif()
+
 if(NOT DEFINED BUNDLE_CMD_ARGS)
   set(BUNDLE_CMD_ARGS "" CACHE STRING "Bundle args for cross compile")
 endif()

@@ -26,6 +26,7 @@ set(LUA_MULTILIB "lib" CACHE PATH "The name of lib directory.")
 set(LUAJIT_DISABLE_FFI OFF CACHE BOOL "Permanently disable the FFI extension")
 set(LUAJIT_DISABLE_JIT OFF CACHE BOOL "Disable the JIT compiler")
 set(LUAJIT_NO_UNWIND OFF CACHE BOOL "Disable the UNWIND")
+set(LUAJIT_ENABLE_LUA52COMPAT ON CACHE BOOL "Enable LuaJIT2.1 compat with Lua5.2")
 set(LUAJIT_NUMMODE 0 CACHE STRING
 "Specify the number mode to use. Possible values:
   0 - Default mode
@@ -549,6 +550,10 @@ endif()
 
 if(LIBDL_LIBRARIES)
   target_link_libraries(libluajit ${LIBDL_LIBRARIES})
+endif()
+
+if(LUAJIT_ENABLE_LUA52COMPAT)
+  set(LJ_DEFINITIONS ${LJ_DEFINITIONS} -DLUAJIT_ENABLE_LUA52COMPAT)
 endif()
 
 set(LJ_DEFINITIONS ${LJ_DEFINITIONS} -DLUA_MULTILIB="${LUA_MULTILIB}")
