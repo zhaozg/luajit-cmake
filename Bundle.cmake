@@ -31,10 +31,14 @@ else()
 endif()
 
 if(NOT DEFINED BUNDLE_DEBUG)
-  string(TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_LOWER)
-  if(${CMAKE_BUILD_TYPE_LOWER} STREQUAL "debug"
-      OR ${CMAKE_BUILD_TYPE_LOWER} STREQUAL "relwithdebinfo")
-    set(BUNDLE_DEBUG ON)
+  if(CMAKE_BUILD_TYPE)
+    string(TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_LOWER)
+    if(${CMAKE_BUILD_TYPE_LOWER} STREQUAL "debug"
+        OR ${CMAKE_BUILD_TYPE_LOWER} STREQUAL "relwithdebinfo")
+      set(BUNDLE_DEBUG ON)
+    endif()
+  else()
+    set(BUNDLE_DEBUG OFF)
   endif()
 endif()
 
