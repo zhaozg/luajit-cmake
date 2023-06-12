@@ -84,8 +84,16 @@ if(LIBFFI_DIR)
 
     file(GLOB FFI_ARCH_C_SOURCES "${LIBFFI_DIR}/src/${FFI_ARCH}/*.c")
     file(GLOB FFI_ARCH_S_SOURCES "${LIBFFI_DIR}/src/${FFI_ARCH}/*.S")
+
+    if(CMAKE_SYSTEM_NAME MATCHES "Windows")
+    list(REMOVE_ITEM FFI_ARCH_S_SOURCES "${LIBFFI_DIR}/src/${FFI_ARCH}/sysv_intel.S")
+        if(NOT lower_system_processor STREQUAL "x86_64")
+            list(REMOVE_ITEM FFI_ARCH_S_SOURCES "${LIBFFI_DIR}/src/${FFI_ARCH}/win64_intel.S")
+        endif()
+    else()
     list(REMOVE_ITEM FFI_ARCH_S_SOURCES "${LIBFFI_DIR}/src/${FFI_ARCH}/sysv_intel.S")
     list(REMOVE_ITEM FFI_ARCH_S_SOURCES "${LIBFFI_DIR}/src/${FFI_ARCH}/win64_intel.S")
+    endif()
 
     if("${TARGET}" MATCHES "X86_64|LOONGARCH64|ARM64|mips64")
         set(HAVE_LONG_DOUBLE 1)
@@ -130,6 +138,7 @@ add_library(luaffi ${LUA_FFI_LIBTYPE} ${FFI_SOURCES}
 if(LIBFFI_DIR)
     set_target_properties(luaffi PROPERTIES
         DEFINITIONS FFI_BUILDING
+        COMPILE_FLAGS "-std=c99"
         INCLUDE_DIRECTORIES "${FFI_INCLUDE_DIRS}"
         )
 endif()
@@ -137,6 +146,7 @@ endif()
 target_include_directories(luaffi PUBLIC
     ${FFI_INCLUDE_DIR}
     ${LUA_INCLUDE_DIR}
+    ${LUA_DIR}
     ${CMAKE_CURRENT_LIST_DIR}/../thirdparty/compat-5.3
 )
 

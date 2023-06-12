@@ -14,7 +14,11 @@ PROJECT(lua C)
 IF(NOT LUA_DIR)
   MESSAGE(FATAL_ERROR "Must set LUA_DIR to build lua with CMake")
 ENDIF()
+if (NOT WIN32)
+  include(GNUInstallDirs)
+endif ()
 
+set(LUA_BUILD_EXE ON CACHE BOOL "Enable lua exe build")
 FILE(COPY ${CMAKE_CURRENT_LIST_DIR}/luauser.h DESTINATION ${CMAKE_BINARY_DIR})
 
 SET(CMAKE_REQUIRED_INCLUDES
@@ -101,11 +105,14 @@ SET(SRC_LUACORE
 )
 
 ## GENERATE
-IF(WITH_SHARED_LUA)
+IF(BUILD_SHARED_LIBS)
   IF(IOS OR ANDROID)
     SET(LIBTYPE STATIC)
   ELSE()
     SET(LIBTYPE SHARED)
+  ENDIF()
+  IF(WIN32)
+    LIST(APPEND LUA_COMPILE_DEFINITIONS "LUA_BUILD_AS_DLL")
   ENDIF()
 ELSE()
   SET(LIBTYPE STATIC)
@@ -137,12 +144,6 @@ if(IOS)
 endif()
 LIST(APPEND LIB_LIST liblua)
 
-ADD_EXECUTABLE(lua ${LUA_DIR}/lua.c)
-IF(WIN32)
-  TARGET_LINK_LIBRARIES(lua liblua)
-ELSE()
-  TARGET_LINK_LIBRARIES(lua liblua ${LIBS})
-ENDIF()
 
 SET(lua_headers
   ${LUA_DIR}/lauxlib.h
@@ -150,26 +151,22 @@ SET(lua_headers
   ${LUA_DIR}/luaconf.h
   ${LUA_DIR}/lualib.h)
 
+INSTALL(FILES ${lua_headers} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/lua)
+INSTALL(TARGETS liblua DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
-## FIXME:
+if(LUA_BUILD_EXE)
+  if(NOT BUILD_SHARED_LIBS)
+    ADD_EXECUTABLE(lua ${LUA_DIR}/onelua.c)
+  else()
+    ADD_EXECUTABLE(lua ${LUA_DIR}/lua.c)
+    TARGET_LINK_LIBRARIES(lua PRIVATE liblua)
+  endif()
+  TARGET_LINK_LIBRARIES(lua ${LIBS})
 
-## USE_64BITS= cmake -H. -BLinux -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=MinSizeRel
-## CMake Error at /Users/zhaozg/work/lua-forge/cmake/lua.cmake:154 (INSTALL):
-##   INSTALL TARGETS given no ARCHIVE DESTINATION for static library target
-##   "liblua".
-## Call Stack (most recent call first):
-##   /Users/zhaozg/work/lua-forge/CMakeLists.txt:88 (include)
-##
-##
-## CMake Error at /Users/zhaozg/work/lua-forge/cmake/lua.cmake:159 (INSTALL):
-##   INSTALL TARGETS given no RUNTIME DESTINATION for executable target "lua".
-## Call Stack (most recent call first):
-##   /Users/zhaozg/work/lua-forge/CMakeLists.txt:88 (include)
-
-
-# INSTALL(FILES ${lua_headers} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/lua)
-# INSTALL(TARGETS liblua DESTINATION ${CMAKE_INSTALL_LIBDIR})
-#
-# IF(NOT IOS)
-#   INSTALL(TARGETS lua DESTINATION ${CMAKE_INSTALL_BINDIR})
-# ENDIF()
+  if(APPLE AND ${CMAKE_C_COMPILER_ID} STREQUAL "zig")
+    target_link_libraries(lua c pthread)
+    set_target_properties(lua PROPERTIES
+      LINK_FLAGS "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+  endif()
+  INSTALL(TARGETS lua DESTINATION "${CMAKE_INSTALL_BINDIR}")
+endif()

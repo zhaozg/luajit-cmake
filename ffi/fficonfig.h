@@ -30,7 +30,9 @@
 /* #undef FFI_NO_STRUCTS */
 
 /* Define to 1 if you have the <alloca.h> header file. */
+#ifndef _WIN32
 #define HAVE_ALLOCA_H 1
+#endif
 
 /* Define if your assembler supports .cfi_* directives. */
 #define HAVE_AS_CFI_PSEUDO_OP 1
@@ -52,16 +54,24 @@
 #define HAVE_AS_X86_PCREL 1
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
+#ifndef _WIN32
 #define HAVE_DLFCN_H 1
+#endif
 
 /* Define if __attribute__((visibility("hidden"))) is supported. */
+#ifndef _WIN32
 #define HAVE_HIDDEN_VISIBILITY_ATTRIBUTE 1
+#endif
 
 /* Define to 1 if you have the <inttypes.h> header file. */
+#ifndef _WIN32
 #define HAVE_INTTYPES_H 1
+#endif
 
 /* Define if you have the long double type and it is bigger than a double */
+#ifndef _WIN32
 #define HAVE_LONG_DOUBLE 1
+#endif
 
 /* Define if you support more than one size of the long double type */
 /* #undef HAVE_LONG_DOUBLE_VARIANT */
@@ -103,7 +113,9 @@
 #define HAVE_SYS_TYPES_H 1
 
 /* Define to 1 if you have the <unistd.h> header file. */
+#ifndef _WIN32
 #define HAVE_UNISTD_H 1
+#endif
 
 /* Define to 1 if GNU symbol versioning is used for libatomic. */
 /* #undef LIBFFI_GNU_SYMBOL_VERSIONING */
@@ -136,7 +148,9 @@
 #define SIZEOF_DOUBLE 8
 
 /* The size of `long double', as computed by sizeof. */
+#ifndef _WIN32
 #define SIZEOF_LONG_DOUBLE 16
+#endif
 
 /* The size of `size_t', as computed by sizeof. */
 #define SIZEOF_SIZE_T 8

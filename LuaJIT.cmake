@@ -538,7 +538,7 @@ target_include_directories(libluajit PRIVATE
   ${CMAKE_CURRENT_BINARY_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR})
 if(BUILD_SHARED_LIBS)
-  if(WIN32 OR MINGW)
+  if(WIN32)
     set(LJ_DEFINITIONS ${LJ_DEFINITIONS}
       -DLUA_BUILD_AS_DLL -DWIN32_LEAN_AND_MEAN -D_CRT_SECURE_NO_WARNINGS)
   endif()
@@ -596,7 +596,7 @@ if (LUAJIT_BUILD_EXE)
   target_link_libraries(luajit libluajit)
   if(APPLE AND ${CMAKE_C_COMPILER_ID} STREQUAL "zig")
     target_link_libraries(luajit c pthread)
-    set_target_properties(minilua PROPERTIES
+    set_target_properties(luajit PROPERTIES
       LINK_FLAGS "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
   endif()
   if(HAVE_UNWIND_LIB AND (NOT LUAJIT_NO_UNWIND STREQUAL ON))
