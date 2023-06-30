@@ -5,13 +5,19 @@
 /* #undef AC_APPLE_UNIVERSAL_BUILD */
 
 /* Define to the flags needed for the .section .eh_frame directive. */
+#if defined(__loongarch64)
+#define EH_FRAME_FLAGS "aw"
+#else
 #define EH_FRAME_FLAGS "a"
+#endif
 
 /* Define this if you want extra debugging. */
 /* #undef FFI_DEBUG */
 
 /* Define this if you want statically defined trampolines */
-/* #undef FFI_EXEC_STATIC_TRAMP */
+#if defined(__loongarch64)
+#define FFI_EXEC_STATIC_TRAMP 1
+#endif
 
 /* Cannot use PROT_EXEC on this target, so, we revert to alternative means */
 /* #undef FFI_EXEC_TRAMPOLINE_TABLE */
@@ -21,7 +27,9 @@
 /* #undef FFI_MMAP_EXEC_EMUTRAMP_PAX */
 
 /* Cannot use malloc on this target, so, we revert to alternative means */
+#if !defined(__loongarch64)
 #define FFI_MMAP_EXEC_WRIT 1
+#endif
 
 /* Define this if you do not want support for the raw API. */
 /* #undef FFI_NO_RAW_API */
@@ -51,7 +59,9 @@
 /* #undef HAVE_AS_X86_64_UNWIND_SECTION_TYPE */
 
 /* Define if your assembler supports PC relative relocs. */
+#if defined(__x86_64__) || defined(_M_AMD64)
 #define HAVE_AS_X86_PCREL 1
+#endif
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #ifndef _WIN32
@@ -80,13 +90,17 @@
 #define HAVE_MEMCPY 1
 
 /* Define to 1 if you have the `memfd_create' function. */
-/* #undef HAVE_MEMFD_CREATE */
+#if defined(__loongarch64)
+#define HAVE_MEMFD_CREATE 1
+#endif
 
 /* Define if your compiler supports pointer authentication. */
 /* #undef HAVE_PTRAUTH */
 
 /* Define if .eh_frame sections should be read-only. */
+#if defined(__loongarch64)
 #define HAVE_RO_EH_FRAME 1
+#endif
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #define HAVE_STDINT_H 1
@@ -118,7 +132,9 @@
 #endif
 
 /* Define to 1 if GNU symbol versioning is used for libatomic. */
-/* #undef LIBFFI_GNU_SYMBOL_VERSIONING */
+#if defined(__loongarch64)
+#define LIBFFI_GNU_SYMBOL_VERSIONING 1
+#endif
 
 /* Define to the sub-directory where libtool stores uninstalled libraries. */
 #define LT_OBJDIR ".libs/"
@@ -161,7 +177,9 @@
 #define STDC_HEADERS 1
 
 /* Define if symbols are underscored. */
+#if !defined(__loongarch64)
 #define SYMBOL_UNDERSCORE 1
+#endif
 
 /* Define this if you are using Purify and want to suppress spurious messages.
    */
