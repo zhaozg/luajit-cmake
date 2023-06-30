@@ -567,6 +567,9 @@ if("${LJ_TARGET_ARCH}" STREQUAL "x86")
     target_compile_options(libluajit PRIVATE
       -march=i686 -msse -msse2 -mfpmath=sse)
   endif()
+  if(MSVC)
+    target_compile_options(libluajit PRIVATE "/arch:SSE2")
+  endif()
 endif()
 
 set(LJ_COMPILE_OPTIONS -U_FORTIFY_SOURCE)
@@ -578,6 +581,9 @@ if(IOS AND ("${LJ_TARGET_ARCH}" STREQUAL "arm64"))
 endif()
 
 target_compile_options(libluajit PRIVATE ${LJ_COMPILE_OPTIONS})
+if(MSVC)
+  target_compile_options(libluajit PRIVATE "/D_CRT_STDIO_INLINE=__declspec(dllexport)__inline")
+endif()
 
 set(luajit_headers
   ${LJ_DIR}/lauxlib.h
