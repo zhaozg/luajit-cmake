@@ -109,7 +109,7 @@ if(NOT ${CMAKE_SYSTEM_NAME} STREQUAL Darwin)
   find_library(LIBDL_LIBRARIES NAMES dl)
 endif()
 
-if($ENV{LUA_TARGET_SHARED})
+if(LUA_TARGET_SHARED)
   add_definitions(-fPIC)
 endif()
 

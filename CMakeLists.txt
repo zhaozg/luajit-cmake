@@ -3,6 +3,13 @@ cmake_minimum_required(VERSION 3.0)
 option(LUA_DIR "Path of Lua 5.4 source dir" OFF)
 option(LUAJIT_DIR "Path of LuaJIT 2.1 source dir" OFF)
 
+if(CMAKE_COMPILER_IS_GNUCC)
+  set(LUA_TARGET_SHARED ON)
+endif()
+if(DEFINED ENV{LUA_TARGET_SHARED})
+  set(LUA_TARGET_SHARED $ENV{LUA_TARGET_SHARED})
+endif()
+
 get_directory_property(hasParent PARENT_DIRECTORY)
 if(LUAJIT_DIR)
   project(luajit)

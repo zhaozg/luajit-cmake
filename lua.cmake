@@ -60,7 +60,7 @@ IF( LUA_USE_LIBM )
   LIST( APPEND LIBS m )
 ENDIF()
 
-if($ENV{LUA_TARGET_SHARED})
+if(LUA_TARGET_SHARED)
   add_definitions(-fPIC)
 endif()
 
