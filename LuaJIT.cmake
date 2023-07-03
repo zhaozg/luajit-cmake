@@ -528,7 +528,11 @@ endif()
 
 # Build the luajit static library
 add_library(libluajit ${luajit_sources})
-set_target_properties(libluajit PROPERTIES OUTPUT_NAME luajit)
+if(MSVC)
+  set_target_properties(libluajit PROPERTIES OUTPUT_NAME libluajit)
+else()
+  set_target_properties(libluajit PROPERTIES OUTPUT_NAME luajit)
+endif()
 add_dependencies(libluajit
   buildvm_arch_h
   buildvm
@@ -604,6 +608,9 @@ if (LUAJIT_BUILD_EXE)
     target_link_libraries(luajit c pthread)
     set_target_properties(luajit PROPERTIES
       LINK_FLAGS "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+  endif()
+  if(WIN32)
+    target_compile_definitions(libluajit PRIVATE _CRT_SECURE_NO_WARNINGS)
   endif()
   if(HAVE_UNWIND_LIB AND (NOT LUAJIT_NO_UNWIND STREQUAL ON))
     target_link_libraries(luajit ${UNWIND_LIBRARY})
