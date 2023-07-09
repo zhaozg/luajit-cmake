@@ -138,7 +138,7 @@ add_library(luaffi ${LUA_FFI_LIBTYPE} ${FFI_SOURCES}
 if(LIBFFI_DIR)
     set_target_properties(luaffi PROPERTIES
         DEFINITIONS FFI_BUILDING
-        COMPILE_FLAGS "-std=c99"
+        COMPILE_FLAGS "-std=c11"
         INCLUDE_DIRECTORIES "${FFI_INCLUDE_DIRS}"
         )
 endif()
