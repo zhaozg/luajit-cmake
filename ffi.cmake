@@ -24,7 +24,7 @@ if(LIBFFI_DIR)
     # config variables for ffi.h.in
     set(VERSION 3.4.4)
 
-    set(KNOWN_PROCESSORS x86 x86_64 amd64 arm arm64 i386 i686 armv7l armv7-a mips mips64el aarch64 loongarch64)
+    set(KNOWN_PROCESSORS x86 x86_64 amd64 arm arm64 i386 i686 armv7l armv7-a mips mips64 mips64el aarch64 loongarch64)
 
     string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" lower_system_processor)
 
@@ -33,6 +33,7 @@ if(LIBFFI_DIR)
     endif()
 
     set(FFI_ARCH OFF)
+    set(INC_ARCH OFF)
 
     if(CMAKE_SYSTEM_NAME MATCHES "Windows")
         if(lower_system_processor STREQUAL "arm")
@@ -56,9 +57,10 @@ if(LIBFFI_DIR)
             set(FFI_ARCH aarch64)
         elseif(lower_system_processor STREQUAL "x86_64")
             set(FFI_ARCH x86)
-        elseif(lower_system_processor STREQUAL "mips64")
+        elseif(lower_system_processor MATCHES "mips64")
             set(TARGET mips64)
             set(FFI_ARCH mips64)
+            set(INC_ARCH mips)
         elseif(lower_system_processor STREQUAL "loongarch64")
             set(TARGET LOONGARCH64)
             set(FFI_ARCH loongarch64)
@@ -80,6 +82,10 @@ if(LIBFFI_DIR)
         endif()
     else()
         message(FATAL_ERROR "Not support ${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}, Please consult ${CMAKE_CURRENT_SOURCE_DIR}/configure.ac and add your platform to this CMake file.")
+    endif()
+
+    if(NOT INC_ARCH)
+        set(INC_ARCH ${FFI_ARCH})
     endif()
 
     file(GLOB FFI_ARCH_C_SOURCES "${LIBFFI_DIR}/src/${FFI_ARCH}/*.c")
@@ -108,7 +114,7 @@ if(LIBFFI_DIR)
     set(FFI_INCLUDE_DIRS
         ${CMAKE_BINARY_DIR}/include
         ${CMAKE_CURRENT_LIST_DIR}/ffi
-        ${LIBFFI_DIR}/src/${FFI_ARCH}
+        ${LIBFFI_DIR}/src/${INC_ARCH}
         ${LIBFFI_DIR}/include)
     set(FFI_SOURCES ${FFI_C_SOURCES} ${FFI_ARCH_C_SOURCES} ${FFI_ARCH_S_SOURCES})
     set(FFI_INCLUDE_DIR ${LIBFFI_DIR}/include ${CMAKE_CURRENT_BINARY_DIR})
