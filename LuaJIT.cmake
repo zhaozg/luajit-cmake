@@ -379,11 +379,12 @@ endif()
 set(VM_DASC_PATH ${LJ_DIR}/vm_${DASM_ARCH}.dasc)
 
 # Build the minilua for host platform
-set(MINILUA_PATH $<TARGET_FILE:minilua>)
 if(NOT CMAKE_CROSSCOMPILING)
   add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/host/minilua)
+  set(MINILUA_PATH $<TARGET_FILE:minilua>)
 else()
   make_directory(${CMAKE_CURRENT_BINARY_DIR}/minilua)
+  set(MINILUA_PATH ${CMAKE_CURRENT_BINARY_DIR}/minilua/minilua)
 
   add_custom_command(OUTPUT ${MINILUA_PATH}
     COMMAND ${CMAKE_COMMAND} ${TOOLCHAIN} ${TARGET_SYS} -DLUAJIT_DIR=${LUAJIT_DIR}
