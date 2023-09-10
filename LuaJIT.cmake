@@ -177,9 +177,9 @@ endif()
 include(${CMAKE_CURRENT_LIST_DIR}/Modules/FindUnwind.cmake)
 if (NOT unwind_FOUND)
   set(LUAJIT_NO_UNWIND ON)
-  if(${CMAKE_SYSTEM_PROCESSOR} STREQUAL mips64 OR
-     ${CMAKE_SYSTEM_PROCESSOR} STREQUAL aarch64 OR
-     ${CMAKE_SYSTEM_NAME} STREQUAL Windows)
+  if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL mips64 OR
+     "${CMAKE_SYSTEM_PROCESSOR}" STREQUAL aarch64 OR
+     "${CMAKE_SYSTEM_NAME}" STREQUAL Windows)
     if(NOT IOS)
       set(LUAJIT_NO_UNWIND IGNORE)
     endif()
@@ -384,7 +384,11 @@ if(NOT CMAKE_CROSSCOMPILING)
   set(MINILUA_PATH $<TARGET_FILE:minilua>)
 else()
   make_directory(${CMAKE_CURRENT_BINARY_DIR}/minilua)
-  set(MINILUA_PATH ${CMAKE_CURRENT_BINARY_DIR}/minilua/minilua)
+  if (WIN32)
+    set(MINILUA_PATH ${CMAKE_CURRENT_BINARY_DIR}/minilua/minilua.exe)
+  else()
+    set(MINILUA_PATH ${CMAKE_CURRENT_BINARY_DIR}/minilua/minilua)
+  endif()
 
   add_custom_command(OUTPUT ${MINILUA_PATH}
     COMMAND ${CMAKE_COMMAND} ${TOOLCHAIN} ${TARGET_SYS} -DLUAJIT_DIR=${LUAJIT_DIR}
