@@ -384,7 +384,7 @@ if(NOT CMAKE_CROSSCOMPILING)
   set(MINILUA_PATH $<TARGET_FILE:minilua>)
 else()
   make_directory(${CMAKE_CURRENT_BINARY_DIR}/minilua)
-  if (WIN32)
+  if (WIN32 OR HOST_WINE)
     set(MINILUA_PATH ${CMAKE_CURRENT_BINARY_DIR}/minilua/minilua.exe)
   else()
     set(MINILUA_PATH ${CMAKE_CURRENT_BINARY_DIR}/minilua/minilua)
@@ -407,23 +407,26 @@ set(GIT_FORMAT %ct)
 if (CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
   set(GIT_FORMAT %%ct)
 endif()
-add_custom_command(OUTPUT ${LUAJIT_DIR}/src/luajit_relver.txt
-  COMMAND git show -s --format=${GIT_FORMAT} > ${LUAJIT_DIR}/src/luajit_relver.txt
+
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/luajit_relver.txt
+  COMMAND git show -s --format=${GIT_FORMAT} > ${CMAKE_CURRENT_BINARY_DIR}/luajit_relver.txt
   WORKING_DIRECTORY ${LUAJIT_DIR}
 )
 
-add_custom_command(OUTPUT ${LUAJIT_DIR}/src/luajit.h
-  COMMAND ${HOST_WINE} ${MINILUA_PATH} host/genversion.lua
-  WORKING_DIRECTORY ${LUAJIT_DIR}/src
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/luajit.h
+  COMMAND ${HOST_WINE} ${MINILUA_PATH} ${LUAJIT_DIR}/src/host/genversion.lua
+  ARGS ${LUAJIT_DIR}/src/luajit_rolling.h
+       ${CMAKE_CURRENT_BINARY_DIR}/luajit_relver.txt
+       ${CMAKE_CURRENT_BINARY_DIR}/luajit.h
   DEPENDS ${LUAJIT_DIR}/src/luajit_rolling.h
-  DEPENDS ${LUAJIT_DIR}/src/luajit_relver.txt
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/luajit_relver.txt
 )
 
 # Generate buildvm_arch.h
 add_custom_command(OUTPUT ${BUILDVM_ARCH_H}
   COMMAND ${HOST_WINE} ${MINILUA_PATH} ${DASM_PATH} ${DASM_FLAGS}
           -o ${BUILDVM_ARCH_H} ${VM_DASC_PATH}
-  DEPENDS minilua ${DASM_PATH} ${LUAJIT_DIR}/src/luajit.h)
+  DEPENDS minilua ${DASM_PATH} ${CMAKE_CURRENT_BINARY_DIR}/luajit.h)
 add_custom_target(buildvm_arch_h ALL
   DEPENDS ${BUILDVM_ARCH_H}
 )
@@ -621,8 +624,8 @@ set(luajit_headers
   ${LJ_DIR}/lauxlib.h
   ${LJ_DIR}/lua.h
   ${LJ_DIR}/luaconf.h
-  ${LJ_DIR}/luajit.h
-  ${LJ_DIR}/lualib.h)
+  ${LJ_DIR}/lualib.h
+  ${CMAKE_CURRENT_BINARY_DIR}/luajit.h)
 install(FILES ${luajit_headers} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/luajit)
 install(TARGETS libluajit
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -632,6 +635,9 @@ install(TARGETS libluajit
 if (LUAJIT_BUILD_EXE)
   add_executable(luajit ${LJ_DIR}/luajit.c)
   target_link_libraries(luajit libluajit)
+  target_include_directories(luajit PRIVATE
+    ${CMAKE_CURRENT_BINARY_DIR}
+  )
   if(APPLE AND ${CMAKE_C_COMPILER_ID} STREQUAL "zig")
     target_link_libraries(luajit c pthread)
     set_target_properties(luajit PROPERTIES
