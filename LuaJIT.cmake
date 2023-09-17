@@ -656,3 +656,9 @@ if (LUAJIT_BUILD_EXE)
   install(TARGETS luajit DESTINATION "${CMAKE_INSTALL_BINDIR}")
 endif()
 
+add_library(luajit-header INTERFACE)
+target_include_directories(luajit-header INTERFACE ${CMAKE_INSTALL_INCLUDEDIR}/luajit)
+
+add_library(luajit::lib ALIAS libluajit)
+add_library(luajit::header ALIAS luajit-header)
+add_executable(luajit:lua ALIAS luajit)
