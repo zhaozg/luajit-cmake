@@ -178,7 +178,7 @@ if(LUA_BUILD_EXE)
 endif()
 
 add_library(lua-header INTERFACE)
-target_include_directories(lua-header INTERFACE ${CMAKE_INSTALL_INCLUDEDIR}/lua)
+target_include_directories(lua-header INTERFACE ${LUA_DIR})
 
 add_library(lua::lib ALIAS liblua)
 add_library(lua::header ALIAS lua-header)

@@ -566,7 +566,8 @@ add_dependencies(libluajit
   lj_gen_folddef)
 target_include_directories(libluajit PRIVATE
   ${CMAKE_CURRENT_BINARY_DIR}
-  ${CMAKE_CURRENT_SOURCE_DIR})
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${LJ_DIR})
 if(BUILD_SHARED_LIBS)
   if(WIN32)
     set(LJ_DEFINITIONS ${LJ_DEFINITIONS}
@@ -637,6 +638,7 @@ if (LUAJIT_BUILD_EXE)
   target_link_libraries(luajit libluajit)
   target_include_directories(luajit PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR}
+    ${LJ_DIR}
   )
   if(APPLE AND ${CMAKE_C_COMPILER_ID} STREQUAL "zig")
     target_link_libraries(luajit c pthread)
@@ -657,7 +659,7 @@ if (LUAJIT_BUILD_EXE)
 endif()
 
 add_library(luajit-header INTERFACE)
-target_include_directories(luajit-header INTERFACE ${CMAKE_INSTALL_INCLUDEDIR}/luajit)
+target_include_directories(luajit-header INTERFACE ${LJ_DIR})
 
 add_library(luajit::lib ALIAS libluajit)
 add_library(luajit::header ALIAS luajit-header)

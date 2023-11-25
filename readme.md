@@ -27,8 +27,10 @@ make --build build --config Release
 
 ```cmake
 add_subdirectory(luajit-cmake)
-target_link_libraries(yourTarget PRIVATE luajit::lib)
+target_link_libraries(yourTarget PRIVATE luajit::lib luajit::header)
 ```
+
+Look samples at [lua-forge](https://github.com/zhaozg/lua-forge/blob/master/CMakeLists.txt)
 
 ### CrossCompile
 
