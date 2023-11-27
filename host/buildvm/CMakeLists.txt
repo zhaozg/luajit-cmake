@@ -50,5 +50,6 @@ target_include_directories(buildvm PRIVATE
   ${LUAJIT_DIR}/src/host
   ${CMAKE_BINARY_DIR}
   ${CMAKE_CURRENT_BINARY_DIR}/..
+  ${CMAKE_CURRENT_BINARY_DIR}/../..
   ${CMAKE_CURRENT_BINARY_DIR}/../../..
   ${CMAKE_CURRENT_BINARY_DIR})
