@@ -186,7 +186,10 @@ if (NOT unwind_FOUND)
   endif()
   # LUAJIT_NO_UNWIND to -DLUAJIT_UNWIND_EXTERNAL for Darwin
   if(${CMAKE_SYSTEM_NAME} STREQUAL Darwin)
-    set(LUAJIT_NO_UNWIND OFF)
+    # HACK: for zig toolchain
+    if(NOT ${TARGET_SYS} STREQUAL native AND NOT ${TARGET_SYS} STREQUAL x86_64-macos-none)
+      set(LUAJIT_NO_UNWIND OFF)
+    endif()
   endif()
 endif()
 
