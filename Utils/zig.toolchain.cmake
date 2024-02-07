@@ -15,6 +15,7 @@ if(TARGET_SYS AND NOT ZIG_INIT)
 
   #https://github.com/ziglang/zig/wiki/FAQ#why-do-i-get-illegal-instruction-when-using-with-zig-cc-to-build-c-code
   set(BUILDFLAGS "-fno-sanitize=undefined -fno-sanitize-trap=undefined")
+  set(BUILDFLAGS "${BUILDFLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
 
   if(${TARGET_SYS} STREQUAL native)
     set(CMAKE_SIZEOF_VOID_P 8)
