@@ -13,16 +13,8 @@ if(TARGET_SYS AND NOT ZIG_INIT)
     find_program(ZIG_TOOLCHAIN_PATH NAMES zig REQUIRED)
   endif()
 
-  set(ZBUILDTYPE)
   #https://github.com/ziglang/zig/wiki/FAQ#why-do-i-get-illegal-instruction-when-using-with-zig-cc-to-build-c-code
-  if(CMAKE_BUILD_TYPE)
-    string(TOLOWER ${CMAKE_BUILD_TYPE} ZBUILDTYPE)
-    if(${ZBUILDTYPE} MATCHES "release")
-      set(BUILDFLAGS "-O3 -pthread")
-    elseif(${ZBUILDTYPE} MATCHES "debug")
-      set(BUILDFLAGS "-Og -g -pthread -fno-sanitize=undefined -fno-sanitize-trap=undefined")
-    endif()
-  endif()
+  set(BUILDFLAGS "-fno-sanitize=undefined -fno-sanitize-trap=undefined")
 
   if(${TARGET_SYS} STREQUAL native)
     set(CMAKE_SIZEOF_VOID_P 8)
