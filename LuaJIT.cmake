@@ -667,4 +667,4 @@ target_include_directories(luajit-header INTERFACE ${LJ_DIR})
 
 add_library(luajit::lib ALIAS libluajit)
 add_library(luajit::header ALIAS luajit-header)
-add_executable(luajit:lua ALIAS luajit)
+add_executable(luajit::lua ALIAS luajit)
