@@ -176,19 +176,16 @@ endif()
 
 include(${CMAKE_CURRENT_LIST_DIR}/Modules/FindUnwind.cmake)
 if (NOT unwind_FOUND)
-  set(LUAJIT_NO_UNWIND ON)
+  if(${CMAKE_SYSTEM_NAME} STREQUAL Darwin)
+    set(LUAJIT_NO_UNWIND OFF)
+  else()
+    set(LUAJIT_NO_UNWIND ON)
+  endif()
   if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL mips64 OR
      "${CMAKE_SYSTEM_PROCESSOR}" STREQUAL aarch64 OR
      "${CMAKE_SYSTEM_NAME}" STREQUAL Windows)
     if(NOT IOS)
       set(LUAJIT_NO_UNWIND IGNORE)
-    endif()
-  endif()
-  # LUAJIT_NO_UNWIND to -DLUAJIT_UNWIND_EXTERNAL for Darwin
-  if(${CMAKE_SYSTEM_NAME} STREQUAL Darwin)
-    # HACK: for zig toolchain
-    if(NOT ${TARGET_SYS} STREQUAL native AND NOT ${TARGET_SYS} STREQUAL x86_64-macos-none)
-      set(LUAJIT_NO_UNWIND OFF)
     endif()
   endif()
 endif()
