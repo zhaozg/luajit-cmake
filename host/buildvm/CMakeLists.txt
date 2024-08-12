@@ -45,6 +45,10 @@ if(LIBM)
   target_link_libraries(buildvm PRIVATE ${LIBM_LIBRARIES})
 endif()
 
+if (MSVC)
+  set_target_properties(buildvm PROPERTIES RUNTIME_OUTPUT_DIRECTORY $<1:${CMAKE_CURRENT_BINARY_DIR}>)
+endif()
+
 target_include_directories(buildvm PRIVATE
   ${LUAJIT_DIR}/src
   ${LUAJIT_DIR}/src/host

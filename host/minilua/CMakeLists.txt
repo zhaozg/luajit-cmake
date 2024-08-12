@@ -15,3 +15,7 @@ if(TARGET_ARCH)
   set_target_properties(minilua PROPERTIES
     COMPILE_FLAGS "${STARGET_ARCH}")
 endif()
+
+if (MSVC)
+  set_target_properties(minilua PROPERTIES RUNTIME_OUTPUT_DIRECTORY $<1:${CMAKE_CURRENT_BINARY_DIR}>)
+endif()

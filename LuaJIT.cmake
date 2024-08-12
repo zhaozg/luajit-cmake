@@ -378,6 +378,12 @@ endif()
 
 set(VM_DASC_PATH ${LJ_DIR}/vm_${DASM_ARCH}.dasc)
 
+if (MSVC)
+  # Workaround to avoid placing of executables into Debug/Release sub-directories
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY $<1:${CMAKE_CURRENT_BINARY_DIR}>)
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY $<1:${CMAKE_CURRENT_BINARY_DIR}>)
+endif()
+
 # Build the minilua for host platform
 if(NOT CMAKE_CROSSCOMPILING)
   add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/host/minilua)
@@ -576,6 +582,10 @@ if(BUILD_SHARED_LIBS)
   endif()
 endif()
 
+if (MSVC)
+  set_target_properties(libluajit PROPERTIES LIBRARY_OUTPUT_DIRECTORY $<1:${CMAKE_CURRENT_BINARY_DIR}>)
+endif()
+
 if(LIBM_LIBRARIES)
   target_link_libraries(libluajit ${LIBM_LIBRARIES})
 endif()
@@ -620,6 +630,10 @@ endif()
 if("${LJ_DETECTED_ARCH}" STREQUAL "Loongarch64")
   set(LJ_TARGET_ARCH "loongarch64")
   target_compile_options(libluajit PRIVATE "-fwrapv")
+endif()
+
+if (MSVC)
+  set_target_properties(luajit PROPERTIES RUNTIME_OUTPUT_DIRECTORY $<1:${CMAKE_CURRENT_BINARY_DIR}>)
 endif()
 
 set(luajit_headers
