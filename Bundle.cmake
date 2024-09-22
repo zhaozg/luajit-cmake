@@ -77,7 +77,7 @@ if(BUNDLE_USE_LUA2C)
           MAIN_DEPENDENCY ${source_file}
           DEPENDS ${LUA_TARGET}
           COMMAND ${BUNDLE_CMD} ARGS
-            ${BUNDLE_CMD_ARGS} lua2c.lua ${BUNDLE_ENABLE_DEBUG} ${source_file} ${generated_file}
+            ${BUNDLE_CMD_ARGS} ${LUA_TARGET_PATH}/lua2c.lua ${BUNDLE_ENABLE_DEBUG} ${source_file} ${generated_file}
           COMMENT "${BUNDLE_CMD} ${BUNDLE_CMD_ARGS} lua2c.lua ${BUNDLE_ENABLE_DEBUG} ${source_file} ${generated_file}"
           WORKING_DIRECTORY ${LUA_TARGET_PATH})
 

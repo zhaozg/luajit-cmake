@@ -594,6 +594,27 @@ if(IOS)
     set_xcode_property(libluajit IPHONEOS_DEPLOYMENT_TARGET "9.0" "all")
 endif()
 
+if(CMAKE_C_COMPILER_ID MATCHES "Clang")
+  # Any Clang
+  # Since the assembler part does NOT maintain a frame pointer, it's pointless
+  # to slow down the C part by not omitting it. Debugging, tracebacks and
+  # unwinding are not affected -- the assembler part has frame unwind
+  # information and GCC emits it where needed (x64) or with -g (see CCDEBUG).
+  add_compile_options(-fomit-frame-pointer)
+  if(CMAKE_C_COMPILER_ID MATCHES "^AppleClang$")
+    # Apple Clang only
+    add_compile_options(
+      -faligned-allocation
+      -fasm-blocks
+    )
+
+    # LuaJit + XCode 16 goes blammo
+    add_link_options(
+      -Wl,-no_deduplicate
+    )
+  endif()
+endif()
+
 if("${LJ_TARGET_ARCH}" STREQUAL "x86")
   if(CMAKE_COMPILER_IS_CLANGXX OR CMAKE_COMPILER_IS_GNUCXX)
     target_compile_options(libluajit PRIVATE
