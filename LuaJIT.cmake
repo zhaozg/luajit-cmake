@@ -609,9 +609,10 @@ if(CMAKE_C_COMPILER_ID MATCHES "Clang")
     )
 
     # LuaJit + XCode 16 goes blammo
-    add_link_options(
-      -Wl,-no_deduplicate
-    )
+    # Not it anymore for LuaJIT HEAD.
+    # add_link_options(
+    #   -Wl,-no_deduplicate
+    # )
   endif()
 endif()
 
