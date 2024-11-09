@@ -7,7 +7,7 @@
 # MIT license.
 # Debugged and (now seriously) modIFied by Ronan Collobert, for Torch7
 
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10)
 
 PROJECT(lua C)
 
