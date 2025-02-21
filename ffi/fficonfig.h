@@ -11,6 +11,11 @@
 #define EH_FRAME_FLAGS "a"
 #endif
 
+#if defined(__OHOS__) && defined(__aarch64__)
+#define asm __asm__
+#define ssize_t int64_t
+#endif
+
 /* Define this if you want extra debugging. */
 /* #undef FFI_DEBUG */
 
@@ -218,4 +223,3 @@
 #define FFI_HIDDEN
 #endif
 #endif
-
