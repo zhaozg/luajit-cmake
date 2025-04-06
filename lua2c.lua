@@ -17,9 +17,10 @@ s
 
 local function usage()
   io.stderr:write[[
-Lua bytecode: lua2c.lua [-g] [-n name] input output
+Lua bytecode: lua2c.lua [-g] [-n name] [-s] input output
   -g        Keep debug info (only in Lua Version equal or greater than 5.3)
   -n name   Set module name (default: auto-detect from input name).
+  -d        Keep source code (default: string.dump).
   -h        Print this usage.
 ]]
     os.exit(1)
@@ -56,14 +57,17 @@ local function parsearg(...)
   local ctx = {
     strip = true,
     modname = false,
+    dump = true,
   }
 
   while n <= #arg do
     local a = arg[n]
     if type(a) == "string" and a:sub(1, 1) == "-" then
       table.remove(arg, n)
-      if a == "-g" then
+      if a == '-g' then
         ctx.strip = false
+      elseif a == '-s' then
+        ctx.dump = false
       elseif a == '-n' then
         if arg[n] == nil then
           usage()
@@ -90,10 +94,18 @@ end
 local src, gen, opts = parsearg(...)
 local _, jit = pcall(require, "jit") if jit and jit.off then jit.off() end
 
-local chunk = assert(loadfile(src, nil, '@'..src))
-local bytecode = (_VERSION=='Lua 5.1' or _VERSION=='Lua 5.2')
-                and string.dump(chunk)
-                or  string.dump(chunk, opts.strip)
+local bytecode
+if opts.dump then
+  local chunk = assert(loadfile(src, nil, '@'..src))
+  bytecode = (_VERSION=='Lua 5.1' or _VERSION=='Lua 5.2')
+            and string.dump(chunk)
+            or  string.dump(chunk, opts.strip)
+else
+  local f = assert(io.open(src, "rb"))
+  bytecode = f:read("*a")
+  f:close()
+end
+assert(type(bytecode) == "string", "bad bytecode")
 
 local function escapefn(opt, name)
    if opt.strip and name:match "[/\\]" then
