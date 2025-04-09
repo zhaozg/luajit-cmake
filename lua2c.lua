@@ -18,9 +18,9 @@ s
 local function usage()
   io.stderr:write[[
 Lua bytecode: lua2c.lua [-g] [-n name] [-s] input output
+  -s        Keep source code (default: use string.dump).
   -g        Keep debug info (only in Lua Version equal or greater than 5.3)
   -n name   Set module name (default: auto-detect from input name).
-  -d        Keep source code (default: string.dump).
   -h        Print this usage.
 ]]
     os.exit(1)
@@ -68,6 +68,7 @@ local function parsearg(...)
         ctx.strip = false
       elseif a == '-s' then
         ctx.dump = false
+        ctx.strip = false
       elseif a == '-n' then
         if arg[n] == nil then
           usage()
@@ -80,7 +81,7 @@ local function parsearg(...)
     n = n + 1
 	end
 
-  if n ~= 3 then
+  if n < 2 then
     usage()
   end
 

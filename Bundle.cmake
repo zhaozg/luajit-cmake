@@ -45,10 +45,6 @@ endif()
 if(BUNDLE_USE_LUA2C)
   file(COPY ${CMAKE_CURRENT_LIST_DIR}/lua2c.lua DESTINATION ${LUA_TARGET_PATH})
 
-  if (BUNDLE_DEBUG)
-    set(BUNDLE_ENABLE_DEBUG "-g")
-  endif ()
-
   if(CMAKE_CROSSCOMPILING AND NOT DEFINED BUNDLE_SOURCE)
     if(${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES 64)
       set(HOST_64 TRUE)
@@ -67,7 +63,9 @@ if(BUNDLE_USE_LUA2C)
 
   if (BUNDLE_SOURCE)
     set(BUNDLE_WITH_SOURCE "-s")
-  endif()
+  elseif (BUNDLE_DEBUG)
+    set(BUNDLE_ENABLE_DEBUG "-g")
+  endif ()
 
   macro(LUA_add_custom_commands luajit_target)
     set(target_srcs "")
@@ -97,7 +95,7 @@ if(BUNDLE_USE_LUA2C)
           MAIN_DEPENDENCY ${source_file}
           DEPENDS ${LUA_TARGET}
           COMMAND ${BUNDLE_CMD} ARGS
-            ${BUNDLE_CMD_ARGS} ${LUA_TARGET_PATH}/lua2c.lua ${BUNDLE_ENABLE_DEBUG} ${BUNDLE_WITH_SOURCE} ${source_file} ${generated_file}
+            ${BUNDLE_CMD_ARGS} lua2c.lua ${BUNDLE_ENABLE_DEBUG} ${BUNDLE_WITH_SOURCE} ${source_file} ${generated_file}
           COMMENT "${BUNDLE_CMD} ${BUNDLE_CMD_ARGS} lua2c.lua ${BUNDLE_ENABLE_DEBUG} ${BUNDLE_WITH_SOURCE} ${source_file} ${generated_file}"
           WORKING_DIRECTORY ${LUA_TARGET_PATH})
 
