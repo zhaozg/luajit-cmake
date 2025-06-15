@@ -183,6 +183,12 @@ if (MSVC)
   endif()
 endif()
 
+set(LJ_PREFIX "")
+if(ARM64_MSVC)
+  #FIXME: I doubt the portability of this implementation
+  set(LJ_PREFIX "Debug/")
+endif()
+
 include(${CMAKE_CURRENT_LIST_DIR}/Modules/FindUnwind.cmake)
 if (NOT unwind_FOUND)
   if(${CMAKE_SYSTEM_NAME} STREQUAL Darwin)
@@ -391,18 +397,16 @@ endif()
 set(VM_DASC_PATH ${LJ_DIR}/vm_${DASM_ARCH}.dasc)
 
 # Build the minilua for host platform
+set(MINILUA_EXE minilua)
+if(HOST_WINE)
+  set(MINILUA_EXE minilua.exe)
+endif()
 if(NOT CMAKE_CROSSCOMPILING)
   add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/host/minilua)
   set(MINILUA_PATH $<TARGET_FILE:minilua>)
 else()
   make_directory(${CMAKE_CURRENT_BINARY_DIR}/minilua)
-  if (HOST_WINE)
-    set(MINILUA_PATH ${CMAKE_CURRENT_BINARY_DIR}/minilua/minilua.exe)
-  elseif(ARM64_MSVC)
-    set(MINILUA_PATH ${CMAKE_CURRENT_BINARY_DIR}/minilua/Debug/minilua)
-  else()
-    set(MINILUA_PATH ${CMAKE_CURRENT_BINARY_DIR}/minilua/minilua)
-  endif()
+  set(MINILUA_PATH ${CMAKE_CURRENT_BINARY_DIR}/minilua/${LJ_PREFIX}${MINILUA_EXE})
 
   add_custom_command(OUTPUT ${MINILUA_PATH}
     COMMAND ${CMAKE_COMMAND} ${TOOLCHAIN} ${TARGET_SYS} -DLUAJIT_DIR=${LUAJIT_DIR}
@@ -462,11 +466,7 @@ if(NOT CMAKE_CROSSCOMPILING)
   set(BUILDVM_PATH $<TARGET_FILE:buildvm>)
   add_dependencies(buildvm buildvm_arch_h)
 else()
-  if (NOT ARM64_MSVC)
-    set(BUILDVM_PATH ${CMAKE_CURRENT_BINARY_DIR}/buildvm/${BUILDVM_EXE})
-  else()
-    set(BUILDVM_PATH ${CMAKE_CURRENT_BINARY_DIR}/buildvm/Debug/${BUILDVM_EXE})
-  endif()
+  set(BUILDVM_PATH ${CMAKE_CURRENT_BINARY_DIR}/buildvm/${LJ_PREFIX}${BUILDVM_EXE})
 
   make_directory(${CMAKE_CURRENT_BINARY_DIR}/buildvm)
 
