@@ -590,6 +590,8 @@ else()
   set(CMAKE_C_LINK_FLAGS "${SDK_NAME_VERSION_FLAGS} -Wl,-search_paths_first ${CMAKE_C_LINK_FLAGS}")
   set(CMAKE_CXX_LINK_FLAGS "${SDK_NAME_VERSION_FLAGS} -Wl,-search_paths_first ${CMAKE_CXX_LINK_FLAGS}")
 
+  set(CMAKE_ASM_FLAGS ${CMAKE_C_FLAGS})
+
   # In order to ensure that the updated compiler flags are used in try_compile()
   # tests, we have to forcibly set them in the CMake cache, not merely set them
   # in the local scope.
