@@ -19,13 +19,10 @@ else()
 endif()
 
 set(CXX_ARCH_FLAGS "")
-if(NOT (CMAKE_SIZEOF_VOID_P EQUAL ${TARGET_SIZE_OF_P}))
-    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-      set(CXX_ARCH_FLAGS "-m32")
-    else()
-      set(CXX_ARCH_FLAGS "-m64")
-    endif()
-endif()
+if ((CMAKE_COMPILER_IS_CLANGXX OR CMAKE_COMPILER_IS_GNUCXX) AND
+  CMAKE_SIZEOF_VOID_P EQUAL 4)
+  set(CXX_ARCH_FLAGS "-m32")
+endif ()
 
 if(NOT ${CMAKE_SYSTEM_NAME} STREQUAL Darwin)
   find_library(LIBM_LIBRARIES NAMES m)
@@ -41,6 +38,9 @@ add_executable(buildvm
 target_compile_options(buildvm PRIVATE
   ${EXTRA_COMPILER_FLAGS} ${CXX_ARCH_FLAGS})
 target_link_libraries(buildvm PRIVATE ${CXX_ARCH_FLAGS})
+if (MSVC)
+  target_compile_options(buildvm PRIVATE -D_CRT_SECURE_NO_WARNINGS)
+endif ()
 if(LIBM)
   target_link_libraries(buildvm PRIVATE ${LIBM_LIBRARIES})
 endif()

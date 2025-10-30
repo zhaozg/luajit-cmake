@@ -82,7 +82,9 @@ if(CMAKE_CROSSCOMPILING)
       message(STATUS "Check CMAKE_TOOLCHAIN_FILE in environment variable, not found")
     endif()
   endif()
-  string(REPLACE " " ";" CROSSCOMPILEING_FLAGS_LISTS ${CMAKE_C_FLAGS})
+  if(CMAKE_C_FLAGS)
+    string(REPLACE " " ";" CROSSCOMPILEING_FLAGS_LISTS "${CMAKE_C_FLAGS}")
+  endif()
 endif()
 
 if (${CMAKE_C_COMPILER_ID} STREQUAL "zig")
@@ -99,23 +101,11 @@ endif ()
 include(CheckTypeSize)
 include(CheckCCompilerFlag)
 
-message("CMAKE_C_COMPILER is ${CMAKE_C_COMPILER}")
-message("CMAKE_C_COMPILER_TARGET is ${CMAKE_C_COMPILER_TARGET}")
-message("CMAKE_C_FLAGS_INIT is ${CMAKE_C_FLAGS_INIT}")
-message("CMAKE_C_FLAGS is ${CMAKE_C_FLAGS}")
-
-set(LJ_CFLAGS -U_FORTIFY_SOURCE -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE)
 # keep same behavior as LuaJIT makefile, so easy for new features test
 # Get preprocessor defines from lj_arch.h
-if (MSVC)
-  execute_process(
-      COMMAND ${CMAKE_C_COMPILER} ${LJ_CFLAGS} /EP /dD lj_arch.h
-      WORKING_DIRECTORY ${LJ_DIR}
-      OUTPUT_VARIABLE TARGET_TESTARCH
-      ERROR_VARIABLE result
-      RESULT_VARIABLE error_output
-  )
-else (MSVC)
+if (NOT MSVC)
+  set(LJ_CFLAGS -U_FORTIFY_SOURCE -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE)
+
   execute_process(
     COMMAND ${CMAKE_C_COMPILER} ${CROSSCOMPILEING_FLAGS} ${LJ_CFLAGS}
       ${CROSSCOMPILEING_FLAGS_LISTS}
@@ -125,51 +115,49 @@ else (MSVC)
       RESULT_VARIABLE result
       ERROR_VARIABLE error_output
   )
-endif (MSVC)
+  if(NOT result EQUAL 0)
+    message(FATAL_ERROR "Failed to preprocess lj_arch.h: ${error_output}")
+  endif()
+  message(DEBUG "Preprocessor output of lj_arch.h:\n${TARGET_TESTARCH}")
 
-if(NOT result EQUAL 0)
-  message(FATAL_ERROR "Failed to preprocess lj_arch.h: ${error_output}")
-endif()
-message(DEBUG "Preprocessor output of lj_arch.h:\n${TARGET_TESTARCH}")
+  if(LUA_TARGET_SHARED)
+    add_definitions(-fPIC)
+  endif()
+endif (NOT MSVC)
 
-if(LUA_TARGET_SHARED)
-  add_definitions(-fPIC)
-endif()
-
-set(TARGET_ARCH "")
-set(DASM_FLAGS "")
-set(LJ_TARGET_ARCH "")
+set(HOST_CFLAGS)     # Build the buildvm for host platform
+set(TARGET_ARCH)     # x86, x64, arm, arm64, ppc, mips, mips64, loongarch64
 
 string(FIND "${TARGET_TESTARCH}" "LJ_TARGET_X64 1" HAVE_FLAG)
 if (NOT HAVE_FLAG EQUAL -1)
-  set(LJ_TARGET_ARCH "x64")
+  set(TARGET_ARCH "x64")
 else ()
   string(FIND "${TARGET_TESTARCH}" "LJ_TARGET_X86 1" HAVE_FLAG)
   if (NOT HAVE_FLAG EQUAL -1)
-    set(LJ_TARGET_ARCH "x86")
+    set(TARGET_ARCH "x86")
   else ()
     string(FIND "${TARGET_TESTARCH}" "LJ_TARGET_ARM 1" HAVE_FLAG)
     if (NOT HAVE_FLAG EQUAL -1)
-      set(LJ_TARGET_ARCH "arm")
+      set(TARGET_ARCH "arm")
     else ()
       string(FIND "${TARGET_TESTARCH}" "LJ_TARGET_ARM64 1" HAVE_FLAG)
       if (NOT HAVE_FLAG EQUAL -1)
-        set(LJ_TARGET_ARCH "arm64")
+        set(TARGET_ARCH "arm64")
 
         string(FIND "${TARGET_TESTARCH}" "__AARCH64EB__" HAVE_FLAG)
         if (NOT HAVE_FLAG EQUAL -1)
-          set(TARGET_ARCH -D__AARCH64EB__=1)
+          list(APPEND HOST_CFLAGS -D__AARCH64EB__=1)
         endif ()
       else ()
         string(FIND "${TARGET_TESTARCH}" "LJ_TARGET_PPC 1" HAVE_FLAG)
         if (NOT HAVE_FLAG EQUAL -1)
-          set(LJ_TARGET_ARCH "ppc")
+          set(TARGET_ARCH "ppc")
 
           string(FIND "${TARGET_TESTARCH}" "LJ_LE 1" HAVE_FLAG)
           if (NOT HAVE_FLAG EQUAL -1)
-            set(TARGET_ARCH -DLJ_ARCH_ENDIAN=LUAJIT_LE)
+            list(APPEND HOST_CFLAGS -DLJ_ARCH_ENDIAN=LUAJIT_LE)
           else ()
-            set(TARGET_ARCH -DLJ_ARCH_ENDIAN=LUAJIT_BE)
+            list(APPEND HOST_CFLAGS -DLJ_ARCH_ENDIAN=LUAJIT_BE)
           endif ()
         else ()
           string(FIND "${TARGET_TESTARCH}" "LJ_TARGET_MIPS 1" HAVE_FLAG)
@@ -177,21 +165,21 @@ else ()
 
             string(FIND "${TARGET_TESTARCH}" "MIPSEL" HAVE_FLAG)
             if (NOT HAVE_FLAG EQUAL -1)
-              set(TARGET_ARCH -D__MIPSEL__=1)
+              list(APPEND HOST_CFLAGS -D__MIPSEL__=1)
             endif ()
 
             string(FIND "${TARGET_TESTARCH}" "LJ_TARGET_MIPS64 1" HAVE_FLAG)
             if (NOT HAVE_FLAG EQUAL -1)
-              set(LJ_TARGET_ARCH "mips64")
+              set(TARGET_ARCH "mips64")
             else ()
-              set(LJ_TARGET_ARCH "mips")
+              set(TARGET_ARCH "mips")
             endif ()
           else ()
             string(FIND "${TARGET_TESTARCH}" "LJ_TARGET_LOONGARCH64 1" HAVE_FLAG)
             if (NOT HAVE_FLAG EQUAL -1)
-              set(LJ_TARGET_ARCH "loongarch64")
-              set(TARGET_ARCH -DLJ_ARCH_ENDIAN=LUAJIT_LE)
-            else ()
+              set(TARGET_ARCH "loongarch64")
+              list(APPEND HOST_CFLAGS -DLJ_ARCH_ENDIAN=LUAJIT_LE)
+            elseif (NOT MSVC)
               message(FATAL_ERROR "Unsupported target architecture")
             endif ()
           endif ()
@@ -201,46 +189,69 @@ else ()
   endif()
 endif()
 
+if (MSVC)
+  if (CMAKE_SIZEOF_VOID_P EQUAL 8)
+    if (CMAKE_SYSTEM_PROCESSOR MATCHES "(AMD64|x86_64|X64)")
+      set(TARGET_ARCH "x64")
+    elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "(ARM64|AArch64)")
+      set(TARGET_ARCH "arm64")
+    else()
+      message(FATAL_ERROR "Unsupported 64-bit processor: ${CMAKE_SYSTEM_PROCESSOR}")
+    endif()
+  else()
+    if (CMAKE_SYSTEM_PROCESSOR MATCHES "(i386|i686|x86|X86|AMD64)")
+      set(TARGET_ARCH "x86")
+    elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "(ARM|armv7)")
+      set(TARGET_ARCH "arm")
+    else()
+      message(FATAL_ERROR "Unsupported 32-bit processor: ${CMAKE_SYSTEM_PROCESSOR}")
+    endif()
+  endif()
 
-string(FIND "${TARGET_TESTARCH}" "LJ_TARGET_PS3" HAVE_FLAG)
+  message(STATUS "Detected target architecture: ${TARGET_ARCH}")
+endif()
+
+string(FIND "${TARGET_TESTARCH}" "LJ_TARGET_PS3 1" HAVE_FLAG)
 if (NOT HAVE_FLAG EQUAL -1)
   set(LJ_TARGET_SYS "PS3")
-  set(TARGET_ARCH ${TARGET_ARCH} -D__CELLOS_LV2__)
-  set(TARGET_ARCH ${TARGET_ARCH} -DLUAJIT_USE_SYSMALLOC)
+  list(APPEND HOST_CFLAGS -D__CELLOS_LV2__)
+  list(APPEND HOST_CFLAGS -DLUAJIT_USE_SYSMALLOC)
   set(LIBPTHREAD_LIBRARIES pthread)
 endif ()
 
-#set(TARGET_ARCH ${TARGET_ARCH} -DLUAJIT_TARGET=LUAJIT_ARCH_${LJ_TARGET_ARCH})
-
 ## LJ_ENABLE_LARGEFILE
-set(LJ_ENABLE_LARGEFILE 1)
+set(LJ_ENABLE_LARGEFILE ON)
 if(ANDROID AND (CMAKE_SYSTEM_VERSION LESS 21))
-  set(LJ_ENABLE_LARGEFILE 0)
-elseif(WIN32 OR MINGW)
-  set(LJ_ENABLE_LARGEFILE 0)
+  set(LJ_ENABLE_LARGEFILE OFF)
+elseif(MSVC)
+  set(LJ_ENABLE_LARGEFILE OFF)
 endif()
 
-if(LJ_ENABLE_LARGEFILE)
+if(NOT LJ_ENABLE_LARGEFILE)
   set(LJ_CFLAGS)
+else()
+  set(LJ_CFLAGS -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE)
 endif()
 
 # -fno-strict-float-cast-overflow
+set(HAVE_FLAG OFF)
 check_c_compiler_flag(-fno-strict-float-cast-overflow HAVE_FLAG)
 if(HAVE_FLAG)
   list(APPEND LJ_CFLAGS -fno-strict-float-cast-overflow)
 endif()
 
 # -fno-stack-protector
+set(HAVE_FLAG OFF)
 check_c_compiler_flag(-fno-stack-protector HAVE_FLAG)
 if(HAVE_FLAG)
   list(APPEND LJ_CFLAGS -fno-stack-protector)
 endif()
 
 # DASM_FLAGS
-set(DASM_FLAGS "")
+set(DASM_FLAGS)
 
 string(FIND "${TARGET_TESTARCH}" "LJ_LE 1" HAVE_FLAG)
-if (NOT HAVE_FLAG EQUAL -1)
+if (MSVC OR NOT HAVE_FLAG EQUAL -1)
   set(DASM_FLAGS ${DASM_FLAGS} -D ENDIAN_LE)
 else ()
   set(DASM_FLAGS ${DASM_FLAGS} -D ENDIAN_BE)
@@ -249,15 +260,17 @@ endif()
 string(FIND "${TARGET_TESTARCH}" "LJ_ARCH_BITS 64" HAVE_FLAG)
 if (NOT HAVE_FLAG EQUAL -1)
   set(DASM_FLAGS ${DASM_FLAGS} -D P64)
+elseif (TARGET_ARCH MATCHES "64")
+  set(DASM_FLAGS ${DASM_FLAGS} -D P64)
 endif()
 
 string(FIND "${TARGET_TESTARCH}" "LJ_HASJIT 1" HAVE_FLAG)
-if (NOT HAVE_FLAG EQUAL -1)
+if (MSVC OR NOT HAVE_FLAG EQUAL -1)
   set(DASM_FLAGS ${DASM_FLAGS} -D JIT)
 endif()
 
 string(FIND "${TARGET_TESTARCH}" "LJ_HASFFI 1" HAVE_FLAG)
-if (NOT HAVE_FLAG EQUAL -1)
+if (MSVC OR NOT HAVE_FLAG EQUAL -1)
   set(DASM_FLAGS ${DASM_FLAGS} -D FFI)
 endif()
 
@@ -267,57 +280,57 @@ if (NOT HAVE_FLAG EQUAL -1)
 endif()
 
 string(FIND "${TARGET_TESTARCH}" "LJ_ARCH_HASFPU 1" HAVE_FLAG)
-if (NOT HAVE_FLAG EQUAL -1)
+if (MSVC OR NOT HAVE_FLAG EQUAL -1)
   set(DASM_FLAGS ${DASM_FLAGS} -D FPU)
-  set(TARGET_ARCH ${TARGET_ARCH} -DLJ_ARCH_HASFPU=1)
+  list(APPEND HOST_CFLAGS -DLJ_ARCH_HASFPU=1)
 else ()
-  set(TARGET_ARCH ${TARGET_ARCH} -DLJ_ARCH_HASFPU=0)
+  list(APPEND HOST_CFLAGS -DLJ_ARCH_HASFPU=0)
 endif ()
 
 string(FIND "${TARGET_TESTARCH}" "LJ_ABI_SOFTFP 1" HAVE_FLAG)
 if (NOT HAVE_FLAG EQUAL -1)
-  set(TARGET_ARCH ${TARGET_ARCH} -DLJ_ABI_SOFTFP=1)
-else ()
+  list(APPEND HOST_CFLAGS -DLJ_ABI_SOFTFP=1)
+elseif (NOT MSVC)
   set(DASM_FLAGS ${DASM_FLAGS} -D HFABI)
-  set(TARGET_ARCH ${TARGET_ARCH} -DLJ_ABI_SOFTFP=0)
+  list(APPEND HOST_CFLAGS -DLJ_ABI_SOFTFP=0)
 endif ()
 
 string(FIND "${TARGET_TESTARCH}" "LJ_NO_UNWIND 1" HAVE_FLAG)
 if (NOT HAVE_FLAG EQUAL -1)
   set(DASM_FLAGS ${DASM_FLAGS} -D NO_UNWIND)
-  set(TARGET_ARCH ${TARGET_ARCH} -DLUAJIT_NO_UNWIND)
+  list(APPEND HOST_CFLAGS -DLUAJIT_NO_UNWIND)
 endif()
 
 string(FIND "${TARGET_TESTARCH}" "LJ_ABI_PAUTH 1" HAVE_FLAG)
 if (NOT HAVE_FLAG EQUAL -1)
   set(DASM_FLAGS ${DASM_FLAGS} -D PAUTH)
-  set(TARGET_ARCH ${TARGET_ARCH} -DLJ_ABI_PAUTH=1)
+  list(APPEND HOST_CFLAGS -DLJ_ABI_PAUTH=1)
 endif()
 
 string(FIND "${TARGET_TESTARCH}" "LJ_ABI_BRANCH_TRACK 1" HAVE_FLAG)
 if (NOT HAVE_FLAG EQUAL -1)
   set(DASM_FLAGS ${DASM_FLAGS} -D BRANCH_TRACK)
-  set(TARGET_ARCH ${TARGET_ARCH} -DLJ_ABI_BRANCH_TRACK=1)
+  list(APPEND HOST_CFLAGS -DLJ_ABI_BRANCH_TRACK=1)
 endif()
 
 string(FIND "${TARGET_TESTARCH}" "LJ_ABI_SHADOW_STACK 1" HAVE_FLAG)
 if (NOT HAVE_FLAG EQUAL -1)
   set(DASM_FLAGS ${DASM_FLAGS} -D SHADOW_STACK)
-  set(TARGET_ARCH ${TARGET_ARCH} -DLJ_ABI_SHADOW_STACK=1)
+  list(APPEND HOST_CFLAGS -DLJ_ABI_SHADOW_STACK=1)
 endif()
 
-if (LJ_TARGET_SYS STREQUAL Windows)
+if (CMAKE_SYSTEM_NAME STREQUAL Windows)
   set(DASM_FLAGS ${DASM_FLAGS} -D WIN)
 endif()
 
-if (LJ_TARGET_ARCH STREQUAL x64)
+if (TARGET_ARCH STREQUAL x64)
   string(FIND "${TARGET_TESTARCH}" "LJ_FR2 1" HAVE_FLAG)
-  if (HAVE_FLAG EQUAL -1)
-    set(LJ_TARGET_ARCH "x86")
+  if (NOT MSVC AND HAVE_FLAG EQUAL -1)
+    set(TARGET_ARCH "x86")
   endif ()
 else ()
-  if (LJ_TARGET_ARCH STREQUAL arm)
-    if (LJ_TARGET_SYS STREQUAL iOS)
+  if (TARGET_ARCH STREQUAL arm)
+    if (CMAKE_SYSTEM_NAME STREQUAL iOS)
       set(DASM_FLAGS ${DASM_FLAGS} -D IOS)
     endif ()
   else ()
@@ -325,7 +338,7 @@ else ()
     if (NOT HAVE_FLAG EQUAL -1)
       set(DASM_FLAGS ${DASM_FLAGS} -D MIPSR6)
     endif()
-    if (LJ_TARGET_ARCH STREQUAL ppc)
+    if (TARGET_ARCH STREQUAL ppc)
       string(FIND "${TARGET_TESTARCH}" "LJ_ARCH_SQRT 1" HAVE_FLAG)
       if (NOT HAVE_FLAG EQUAL -1)
         set(DASM_FLAGS ${DASM_FLAGS} -D SQRT)
@@ -345,11 +358,8 @@ else ()
   endif ()
 endif()
 
-set(DASM_ARCH ${LJ_TARGET_ARCH})
-
-#DASM_AFLAGS+= -D VER=$(subst LJ_ARCH_VERSION_,,$(filter LJ_ARCH_VERSION_%,$(subst LJ_ARCH_VERSION ,LJ_ARCH_VERSION_,$(TARGET_TESTARCH))))
 set(DASM_FLAGS ${DASM_FLAGS} -D VER=)
-set(TARGET_ARCH ${TARGET_ARCH} -DLUAJIT_TARGET=LUAJIT_ARCH_${LJ_TARGET_ARCH})
+list(APPEND HOST_CFLAGS -DLUAJIT_TARGET=LUAJIT_ARCH_${TARGET_ARCH})
 
 set(LJ_PREFIX "")
 
@@ -357,42 +367,29 @@ include(${CMAKE_CURRENT_LIST_DIR}/Modules/FindUnwind.cmake)
 if (NOT unwind_FOUND)
   if(${CMAKE_SYSTEM_NAME} STREQUAL Darwin)
     set(LUAJIT_NO_UNWIND OFF)
+  elseif (WIN32)
+    set(LUAJIT_NO_UNWIND IGNORE)
   else()
     set(LUAJIT_NO_UNWIND ON)
   endif()
-  # if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL mips64 OR
-  #    "${CMAKE_SYSTEM_NAME}" STREQUAL Windows)
-  #   if(NOT IOS)
-  #     set(LUAJIT_NO_UNWIND IGNORE)
-  #   endif()
-  # endif()
 endif()
 
-message(STATUS "#### CMAKE_SYSTEM_NAME is ${CMAKE_SYSTEM_NAME}")
-message(STATUS "#### CMAKE_SYSTEM_PROCESSOR is ${CMAKE_SYSTEM_PROCESSOR}")
-message(STATUS "#### TARGET_ARCH is ${TARGET_ARCH}")
-message(STATUS "#### unwind_FOUND is ${unwind_FOUND}")
-message(STATUS "#### HAVE_UNWIND_H is ${HAVE_UNWIND_H}")
-message(STATUS "#### HAVE_UNWIND_LIB is ${HAVE_UNWIND_LIB}")
-message(STATUS "#### UNWIND_LIBRARY is ${UNWIND_LIBRARY}")
 
-message(STATUS "#### LUAJIT_NO_UNWIND is ${LUAJIT_NO_UNWIND}")
-
-set(LJ_DEFINITIONS "")
+set(LJ_DEFINITIONS)
 if(${LUAJIT_NO_UNWIND} STREQUAL ON)
   # LUAJIT_NO_UNWIND is ON
   set(DASM_FLAGS ${DASM_FLAGS} -D NO_UNWIND)
-  set(TARGET_ARCH ${TARGET_ARCH} -DLUAJIT_NO_UNWIND)
-  set(LJ_DEFINITIONS ${LJ_DEFINITIONS} -DLUAJIT_NO_UNWIND)
+  list(APPEND LJ_DEFINITIONS LUAJIT_NO_UNWIND)
+  list(APPEND HOST_CFLAGS -DLUAJIT_NO_UNWIND)
 elseif(${LUAJIT_NO_UNWIND} STREQUAL OFF)
   # LUAJIT_NO_UNWIND is OFF
-  set(LJ_DEFINITIONS ${LJ_DEFINITIONS} -DLUAJIT_UNWIND_EXTERNAL)
-  set(TARGET_ARCH ${TARGET_ARCH} -DLUAJIT_UNWIND_EXTERNAL)
+  list(APPEND LJ_DEFINITIONS LUAJIT_UNWIND_EXTERNAL)
+  list(APPEND HOST_CFLAGS -DLUAJIT_UNWIND_EXTERNAL)
 endif()
 
 ## LJ_NO_SYSTEM: without system(3)
 if(ANDROID OR OHOS OR IOS)
-  set(LJ_DEFINITIONS ${LJ_DEFINITIONS} -DLJ_NO_SYSTEM=1)
+  list(APPEND LJ_DEFINITIONS LJ_NO_SYSTEM=1)
 endif()
 
 if(IOS OR OHOS)
@@ -409,15 +406,15 @@ if(LJ_HAS_FPU)
   set(LJ_ARCH_NUMMODE ${LJ_NUMMODE_DUAL_SINGLE})
 endif()
 
-if(("${LJ_TARGET_ARCH}" STREQUAL "x86") OR
-    ("${LJ_TARGET_ARCH}" STREQUAL "x64"))
+if(("${TARGET_ARCH}" STREQUAL "x86") OR
+    ("${TARGET_ARCH}" STREQUAL "x64"))
   set(LJ_ARCH_NUMMODE ${LJ_NUMMODE_SINGLE_DUAL})
 endif()
 
-if(("${LJ_TARGET_ARCH}" STREQUAL "arm") OR
-    ("${LJ_TARGET_ARCH}" STREQUAL "arm64") OR
-    ("${LJ_TARGET_ARCH}" STREQUAL "mips") OR
-    ("${LJ_TARGET_ARCH}" STREQUAL "mips64"))
+if(("${TARGET_ARCH}" STREQUAL "arm") OR
+    ("${TARGET_ARCH}" STREQUAL "arm64") OR
+    ("${TARGET_ARCH}" STREQUAL "mips") OR
+    ("${TARGET_ARCH}" STREQUAL "mips64"))
   set(LJ_ARCH_NUMMODE ${LJ_NUMMODE_DUAL})
 endif()
 
@@ -469,40 +466,48 @@ else()
 endif()
 
 if(LUAJIT_DISABLE_GC64)
-  set(LJ_DEFINITIONS ${LJ_DEFINITIONS} -DLUAJIT_DISABLE_GC64)
-  set(TARGET_ARCH ${TARGET_ARCH} -DLUAJIT_DISABLE_GC64)
+  list(APPEND LJ_DEFINITIONS LUAJIT_DISABLE_GC64)
+  list(APPEND HOST_CFLAGS -DLUAJIT_DISABLE_GC64)
 endif()
 
-set(TARGET_ARCH ${TARGET_ARCH} ${TARGET_OS_FLAGS})
-set(LJ_DEFINITIONS ${LJ_DEFINITIONS} ${TARGET_OS_FLAGS})
+list(APPEND HOST_CFLAGS ${TARGET_OS_FLAGS})
 
 if(LUAJIT_DISABLE_FFI)
-  set(LJ_DEFINITIONS ${LJ_DEFINITIONS} -DLUAJIT_DISABLE_FFI)
-  set(TARGET_ARCH ${TARGET_ARCH} -DLUAJIT_DISABLE_FFI)
+  list(APPEND LJ_DEFINITIONS LUAJIT_DISABLE_FFI)
+  list(APPEND HOST_CFLAGS -DLUAJIT_DISABLE_FFI)
 endif()
 if(LUAJIT_DISABLE_JIT)
-  set(LJ_DEFINITIONS ${LJ_DEFINITIONS} -DLUAJIT_DISABLE_JIT)
-  set(TARGET_ARCH ${TARGET_ARCH} -DLUAJIT_DISABLE_JIT)
+  list(APPEND LJ_DEFINITIONS LUAJIT_DISABLE_JIT)
+  list(APPEND HOST_CFLAGS -DLUAJIT_DISABLE_JIT)
 endif()
 
 if(("${LUAJIT_NUMMODE}" STREQUAL "1") OR
     ("${LUAJIT_NUMMODE}" STREQUAL "2"))
-  set(LJ_DEFINITIONS ${LJ_DEFINITIONS} -DLUAJIT_NUMMODE=${LUAJIT_NUMMODE})
-  set(TARGET_ARCH ${TARGET_ARCH} -DLUAJIT_NUMMODE=${LUAJIT_NUMMODE})
+  list(APPEND LJ_DEFINITIONS LUAJIT_NUMMODE=${LUAJIT_NUMMODE})
+  list(APPEND HOST_CFLAGS -DLUAJIT_NUMMODE=${LUAJIT_NUMMODE})
 endif()
 
 if(LUAJIT_ENABLE_GDBJIT)
-  set(LJ_DEFINITIONS ${LJ_DEFINITIONS} -DLUAJIT_ENABLE_GDBJIT)
-  set(TARGET_ARCH ${TARGET_ARCH} -DLUAJIT_ENABLE_GDBJIT)
+  list(APPEND LJ_DEFINITIONS LUAJIT_ENABLE_GDBJIT)
+  list(APPEND HOST_CFLAGS -DLUAJIT_ENABLE_GDBJIT)
 endif()
 
-set(VM_DASC_PATH ${LJ_DIR}/vm_${DASM_ARCH}.dasc)
+if (MINGW)
+  list(APPEND HOST_CFLAGS -malign-double)
+endif()
+
+set(VM_DASC_PATH ${LJ_DIR}/vm_${TARGET_ARCH}.dasc)
+
+message(STATUS "DASM_FLAGS: ${DASM_FLAGS}")
+message(STATUS "HOST_CFLAGS: ${HOST_CFLAGS}")
 
 # Build the minilua for host platform
 set(MINILUA_EXE minilua)
 if(HOST_WINE)
   set(MINILUA_EXE minilua.exe)
 endif()
+
+list(JOIN HOST_CFLAGS " " MINILUA_CFLAGS)
 if(NOT CMAKE_CROSSCOMPILING)
   add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/host/minilua)
   set(MINILUA_PATH $<TARGET_FILE:minilua>)
@@ -514,7 +519,7 @@ else()
   add_custom_command(OUTPUT ${MINILUA_PATH}
     COMMAND ${CMAKE_COMMAND} ${TOOLCHAIN} ${TARGET_SYS}
             -DLUAJIT_DIR=${LUAJIT_DIR}
-            -DCMAKE_SIZEOF_VOID_P=${CMAKE_SIZEOF_VOID_P}
+            -DMINILUA_CFLAGS=${MINILUA_CFLAGS}
             ${CMAKE_CURRENT_LIST_DIR}/host/minilua
     COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR}/minilua
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/minilua)
@@ -580,11 +585,9 @@ add_custom_target(buildvm_arch_h ALL
 )
 
 # Build the buildvm for host platform
-set(BUILDVM_COMPILER_FLAGS "${TARGET_ARCH}")
-
 set(BUILDVM_COMPILER_FLAGS_PATH
   "${CMAKE_CURRENT_BINARY_DIR}/buildvm_flags.config")
-file(WRITE ${BUILDVM_COMPILER_FLAGS_PATH} "${BUILDVM_COMPILER_FLAGS}")
+file(WRITE ${BUILDVM_COMPILER_FLAGS_PATH} "${HOST_CFLAGS}")
 
 set(BUILDVM_EXE buildvm)
 if(HOST_WINE)
@@ -620,7 +623,7 @@ endif()
 set(LJVM_MODE elfasm)
 if(APPLE)
   set(LJVM_MODE machasm)
-elseif(WIN32 OR MINGW)
+elseif(WIN32)
   set(LJVM_MODE peobj)
 endif()
 
@@ -701,6 +704,14 @@ else()
   set(luajit_sources ${SRC_LIBCORE} ${SRC_LJCORE} ${LJ_VM_NAME})
 endif()
 
+if (WIN32)
+  list(APPEND LJ_DEFINITIONS _CRT_SECURE_NO_WARNINGS)
+
+  if (BUILD_SHARED_LIBS)
+    list(APPEND LJ_DEFINITIONS LUA_BUILD_AS_DLL)
+  endif ()
+endif ()
+
 # Build the luajit static library
 add_library(libluajit ${luajit_sources})
 if(MSVC)
@@ -708,7 +719,11 @@ if(MSVC)
 else()
   set_target_properties(libluajit PROPERTIES OUTPUT_NAME luajit)
 endif()
-set_target_properties(libluajit PROPERTIES COMILE_FLAGS "${LJ_CFLAGS}")
+if (LJ_CFLAGS)
+  message(STATUS "LJ_CFLAGS: ${LJ_CFLAGS}")
+  list(JOIN LJ_CFLAGS " " SLJ_CFLAGS)
+  set_target_properties(libluajit PROPERTIES COMPILE_FLAGS "${SLJ_CFLAGS}")
+endif ()
 
 add_dependencies(libluajit
   buildvm_arch_h
@@ -718,14 +733,7 @@ add_dependencies(libluajit
 target_include_directories(libluajit PRIVATE
   ${CMAKE_CURRENT_BINARY_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR})
-target_include_directories(libluajit PUBLIC
-  ${LJ_DIR})
-if(BUILD_SHARED_LIBS)
-  if(WIN32)
-    set(LJ_DEFINITIONS ${LJ_DEFINITIONS}
-      -DLUA_BUILD_AS_DLL -D_CRT_SECURE_NO_WARNINGS)
-  endif()
-endif()
+target_include_directories(libluajit PUBLIC ${LJ_DIR})
 
 if(HAVE_UNWIND_LIB AND (NOT LUAJIT_NO_UNWIND STREQUAL ON))
   message(STATUS "Linking with lib ${UNWIND_LIBRARY}")
@@ -747,10 +755,13 @@ if(LIBDL_LIBRARIES)
 endif()
 
 if(LUAJIT_ENABLE_LUA52COMPAT)
-  set(LJ_DEFINITIONS ${LJ_DEFINITIONS} -DLUAJIT_ENABLE_LUA52COMPAT)
+  list(APPEND LJ_DEFINITIONS LUAJIT_ENABLE_LUA52COMPAT)
 endif()
 
-set(LJ_DEFINITIONS ${LJ_DEFINITIONS} -DLUA_MULTILIB="${LUA_MULTILIB}")
+list(APPEND LJ_DEFINITIONS LUA_MULTILIB="${LUA_MULTILIB}")
+
+message(STATUS "LJ_DEFINITIONS: ${LJ_DEFINITIONS}")
+
 target_compile_definitions(libluajit PRIVATE ${LJ_DEFINITIONS})
 if(IOS)
   set_xcode_property(libluajit IPHONEOS_DEPLOYMENT_TARGET "9.0" "all")
@@ -778,7 +789,7 @@ if(CMAKE_C_COMPILER_ID MATCHES "Clang")
   endif()
 endif()
 
-if("${LJ_TARGET_ARCH}" STREQUAL "x86")
+if("${TARGET_ARCH}" STREQUAL "x86")
   if(CMAKE_COMPILER_IS_CLANGXX OR CMAKE_COMPILER_IS_GNUCXX)
     target_compile_options(libluajit PRIVATE
       -march=i686 -msse -msse2 -mfpmath=sse)
@@ -792,7 +803,7 @@ set(LJ_COMPILE_OPTIONS -U_FORTIFY_SOURCE)
 if(NO_STACK_PROTECTOR_FLAG)
   set(LJ_COMPILE_OPTIONS ${LJ_COMPILE_OPTIONS} -fno-stack-protector)
 endif()
-if(IOS AND ("${LJ_TARGET_ARCH}" STREQUAL "arm64"))
+if(IOS AND ("${TARGET_ARCH}" STREQUAL "arm64"))
   set(LJ_COMPILE_OPTIONS ${LJ_COMPILE_OPTIONS} -fno-omit-frame-pointer)
 endif()
 
@@ -802,7 +813,7 @@ if(MSVC)
     "/D_CRT_STDIO_INLINE=__declspec(dllexport)__inline")
 endif()
 
-if("${LJ_TARGET_ARCH}" STREQUAL "Loongarch64")
+if("${TARGET_ARCH}" STREQUAL "Loongarch64")
   target_compile_options(libluajit PRIVATE "-fwrapv")
 endif()
 
@@ -825,13 +836,13 @@ if (LUAJIT_BUILD_EXE)
     ${CMAKE_CURRENT_BINARY_DIR}
     ${LJ_DIR}
   )
+  if (MINGW)
+    target_link_libraries(luajit m)
+  endif ()
   if(APPLE AND ${CMAKE_C_COMPILER_ID} STREQUAL "zig")
     target_link_libraries(luajit c m pthread)
     set_target_properties(luajit PROPERTIES
       LINK_FLAGS "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
-  endif()
-  if(WIN32)
-    target_compile_definitions(libluajit PRIVATE _CRT_SECURE_NO_WARNINGS)
   endif()
 
   target_compile_definitions(luajit PRIVATE ${LJ_DEFINITIONS})
