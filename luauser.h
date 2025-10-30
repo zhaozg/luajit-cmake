@@ -7,7 +7,7 @@
 
      #define lua_getlocaledecpoint()        ('.')
   #endif
-  #if __ANDROID_API__ < 25
+  #if __ANDROID_API__ < 24
      #define fseeko fseek
      #define ftello ftell
   #endif

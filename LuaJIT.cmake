@@ -82,10 +82,13 @@ if(CMAKE_CROSSCOMPILING)
       message(STATUS "Check CMAKE_TOOLCHAIN_FILE in environment variable, not found")
     endif()
   endif()
+  string(REPLACE " " ";" CROSSCOMPILEING_FLAGS_LISTS ${CMAKE_C_FLAGS})
 endif()
 
 if (${CMAKE_C_COMPILER_ID} STREQUAL "zig")
   set(CROSSCOMPILEING_FLAGS cc -target ${CMAKE_C_COMPILER_TARGET})
+elseif (ANDROID)
+  set(CROSSCOMPILEING_FLAGS -target ${CMAKE_C_COMPILER_TARGET})
 elseif (APPLE AND CMAKE_OSX_SYSROOT)
   set(CROSSCOMPILEING_FLAGS -isysroot ${CMAKE_OSX_SYSROOT})
   if (ARCHS)
@@ -99,6 +102,7 @@ include(CheckCCompilerFlag)
 message("CMAKE_C_COMPILER is ${CMAKE_C_COMPILER}")
 message("CMAKE_C_COMPILER_TARGET is ${CMAKE_C_COMPILER_TARGET}")
 message("CMAKE_C_FLAGS_INIT is ${CMAKE_C_FLAGS_INIT}")
+message("CMAKE_C_FLAGS is ${CMAKE_C_FLAGS}")
 
 set(LJ_CFLAGS -U_FORTIFY_SOURCE -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE)
 # keep same behavior as LuaJIT makefile, so easy for new features test
@@ -108,13 +112,14 @@ if (MSVC)
       COMMAND ${CMAKE_C_COMPILER} ${LJ_CFLAGS} /EP /dD lj_arch.h
       WORKING_DIRECTORY ${LJ_DIR}
       OUTPUT_VARIABLE TARGET_TESTARCH
-      ERROR_VARIABLE error_result
-      RESULT_VARIABLE return_code
+      ERROR_VARIABLE result
+      RESULT_VARIABLE error_output
   )
 else (MSVC)
   execute_process(
-    COMMAND ${CMAKE_C_COMPILER} ${CROSSCOMPILEING_FLAGS}
-      ${LJ_CFLAGS} -E -dM lj_arch.h
+    COMMAND ${CMAKE_C_COMPILER} ${CROSSCOMPILEING_FLAGS} ${LJ_CFLAGS}
+      ${CROSSCOMPILEING_FLAGS_LISTS}
+      -E -dM lj_arch.h
       WORKING_DIRECTORY ${LJ_DIR}
       OUTPUT_VARIABLE TARGET_TESTARCH
       RESULT_VARIABLE result
