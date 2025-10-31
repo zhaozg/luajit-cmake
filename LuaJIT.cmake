@@ -8,8 +8,6 @@ endif()
 
 set(LJ_DIR ${LUAJIT_DIR}/src)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/Modules")
-
 if (NOT WIN32)
   include(GNUInstallDirs)
 endif ()
@@ -21,7 +19,6 @@ set(LUAJIT_DISABLE_GC64 OFF CACHE BOOL "Disable GC64 mode for x64")
 set(LUA_MULTILIB "lib" CACHE PATH "The name of lib directory.")
 set(LUAJIT_DISABLE_FFI OFF CACHE BOOL "Permanently disable the FFI extension")
 set(LUAJIT_DISABLE_JIT OFF CACHE BOOL "Disable the JIT compiler")
-set(LUAJIT_NO_UNWIND OFF CACHE BOOL "Disable the UNWIND")
 set(LUAJIT_ENABLE_LUA52COMPAT ON CACHE BOOL "Enable LuaJIT2.1 compat with Lua5.2")
 set(LUAJIT_NUMMODE 0 CACHE STRING
 "Specify the number mode to use. Possible values:
@@ -32,6 +29,30 @@ set(LUAJIT_NUMMODE 0 CACHE STRING
 
 message(STATUS "${CMAKE_CROSSCOMPILING} ${CMAKE_HOST_SYSTEM_NAME}")
 message(STATUS "${CMAKE_SIZEOF_VOID_P} ${CMAKE_SYSTEM_NAME}")
+
+include(CheckTypeSize)
+include(CheckCCompilerFlag)
+
+# unwind support, LUAJIT_NO_UNWIND with trible states: ON, OFF, IGNORE
+if (APPLE)
+  set(LUAJIT_NO_UNWIND OFF)
+elseif (WIN32)
+  set(LUAJIT_NO_UNWIND IGNORE)
+else ()
+  include(${CMAKE_CURRENT_LIST_DIR}/Modules/Findunwind.cmake)
+  if(unwind_FOUND)
+    set(LUAJIT_NO_UNWIND OFF)
+    message(STATUS "Found libunwind: ${UNWIND_LIBRARY}")
+  elseif (HAVE_UNWIND_H)
+    check_c_compiler_flag(-funwind-tables HAVE_UNWIND_TABLE)
+    if (HAVE_UNWIND_TABLE)
+      set(LUAJIT_NO_UNWIND OFF)
+    else ()
+      set(LUAJIT_NO_UNWIND IGNORE)
+    endif ()
+  endif ()
+endif ()
+message(STATUS "LUAJIT_NO_UNWIND is set to ${LUAJIT_NO_UNWIND}")
 
 if(CMAKE_CROSSCOMPILING)
   if(${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES 64)
@@ -97,9 +118,6 @@ elseif (APPLE AND CMAKE_OSX_SYSROOT)
     list(APPEND CROSSCOMPILEING_FLAGS -arch ${ARCHS})
   endif ()
 endif ()
-
-include(CheckTypeSize)
-include(CheckCCompilerFlag)
 
 # keep same behavior as LuaJIT makefile, so easy for new features test
 # Get preprocessor defines from lj_arch.h
@@ -234,14 +252,15 @@ else()
 endif()
 
 # -fno-strict-float-cast-overflow
-set(HAVE_FLAG OFF)
-check_c_compiler_flag(-fno-strict-float-cast-overflow HAVE_FLAG)
-if(HAVE_FLAG)
-  list(APPEND LJ_CFLAGS -fno-strict-float-cast-overflow)
-endif()
+# NOTE: UBUNTU 24.04.3 LTS
+# cc: error: unrecognized command-line option ‘-fno-strict-float-cast-overflow’;
+# did you mean ‘-fno-sanitize=float-cast-overflow’?
+# check_c_compiler_flag(-fno-strict-float-cast-overflow HAVE_FLAG)
+# if(HAVE_FLAG)
+#   list(APPEND LJ_CFLAGS -fno-strict-float-cast-overflow)
+# endif()
 
 # -fno-stack-protector
-set(HAVE_FLAG OFF)
 check_c_compiler_flag(-fno-stack-protector HAVE_FLAG)
 if(HAVE_FLAG)
   list(APPEND LJ_CFLAGS -fno-stack-protector)
@@ -363,26 +382,10 @@ list(APPEND HOST_CFLAGS -DLUAJIT_TARGET=LUAJIT_ARCH_${TARGET_ARCH})
 
 set(LJ_PREFIX "")
 
-include(${CMAKE_CURRENT_LIST_DIR}/Modules/FindUnwind.cmake)
-if (NOT unwind_FOUND)
-  if(${CMAKE_SYSTEM_NAME} STREQUAL Darwin)
-    set(LUAJIT_NO_UNWIND OFF)
-  elseif (WIN32)
-    set(LUAJIT_NO_UNWIND IGNORE)
-  else()
-    set(LUAJIT_NO_UNWIND ON)
-  endif()
-endif()
-
-
 set(LJ_DEFINITIONS)
-if(${LUAJIT_NO_UNWIND} STREQUAL ON)
-  # LUAJIT_NO_UNWIND is ON
-  set(DASM_FLAGS ${DASM_FLAGS} -D NO_UNWIND)
+if("${LUAJIT_NO_UNWIND}" STREQUAL "ON")
   list(APPEND LJ_DEFINITIONS LUAJIT_NO_UNWIND)
-  list(APPEND HOST_CFLAGS -DLUAJIT_NO_UNWIND)
-elseif(${LUAJIT_NO_UNWIND} STREQUAL OFF)
-  # LUAJIT_NO_UNWIND is OFF
+elseif("${LUAJIT_NO_UNWIND}" STREQUAL "OFF")
   list(APPEND LJ_DEFINITIONS LUAJIT_UNWIND_EXTERNAL)
   list(APPEND HOST_CFLAGS -DLUAJIT_UNWIND_EXTERNAL)
 endif()
@@ -595,6 +598,7 @@ if(HOST_WINE)
 endif()
 
 if(NOT CMAKE_CROSSCOMPILING)
+  set(BUILDVM_COMPILER_FLAGS "${HOST_CFLAGS}")
   add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/host/buildvm)
   set(BUILDVM_PATH $<TARGET_FILE:buildvm>)
   add_dependencies(buildvm buildvm_arch_h)
@@ -735,11 +739,6 @@ target_include_directories(libluajit PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(libluajit PUBLIC ${LJ_DIR})
 
-if(HAVE_UNWIND_LIB AND (NOT LUAJIT_NO_UNWIND STREQUAL ON))
-  message(STATUS "Linking with lib ${UNWIND_LIBRARY}")
-  target_link_libraries(libluajit INTERFACE ${UNWIND_LIBRARY})
-endif()
-
 ## link stage
 if(${CMAKE_SYSTEM_NAME} STREQUAL Linux)
   find_library(LIBM_LIBRARIES NAMES m)
@@ -790,7 +789,7 @@ if(CMAKE_C_COMPILER_ID MATCHES "Clang")
 endif()
 
 if("${TARGET_ARCH}" STREQUAL "x86")
-  if(CMAKE_COMPILER_IS_CLANGXX OR CMAKE_COMPILER_IS_GNUCXX)
+  if(CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_GNUC)
     target_compile_options(libluajit PRIVATE
       -march=i686 -msse -msse2 -mfpmath=sse)
   endif()
@@ -836,11 +835,14 @@ if (LUAJIT_BUILD_EXE)
     ${CMAKE_CURRENT_BINARY_DIR}
     ${LJ_DIR}
   )
+
   if (MINGW)
     target_link_libraries(luajit m)
-  endif ()
+  elseif (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_GNUC)
+    target_link_libraries(luajit c m)
+  endif()
+
   if(APPLE AND ${CMAKE_C_COMPILER_ID} STREQUAL "zig")
-    target_link_libraries(luajit c m pthread)
     set_target_properties(luajit PROPERTIES
       LINK_FLAGS "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
   endif()
@@ -855,10 +857,6 @@ add_library(luajit-header INTERFACE)
 target_include_directories(luajit-header INTERFACE ${LJ_DIR})
 
 add_library(luajit::lib ALIAS libluajit)
-if(HAVE_UNWIND_LIB AND (NOT LUAJIT_NO_UNWIND STREQUAL ON))
-  message(STATUS "Linking with lib ${UNWIND_LIBRARY}")
-  target_link_libraries(liblua::lib INTERFACE ${UNWIND_LIBRARY})
-endif()
 add_library(luajit::header ALIAS luajit-header)
 if (LUAJIT_BUILD_EXE)
   add_executable(luajit::lua ALIAS luajit)

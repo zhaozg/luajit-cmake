@@ -46,15 +46,28 @@ else()
 endif()
 
 if (HAVE_UNWIND_LIB AND HAVE_UNWIND_H)
-    set(unwind_FOUND ON)
+  set(unwind_FOUND ON)
 elseif(HAVE_UNWIND_H)
-    if (CMAKE_SYSTEM_PROCESSOR STREQUAL aarch64
-        AND CMAKE_C_COMPILER_ID STREQUAL zig
-        AND NOT ANDROID
-        AND NOT IOS)
-        set(UNWIND_LIBRARY unwind)
-        set(HAVE_UNWIND_LIB ON)
+  message(STATUS "Found unwind library: ${UNWIND_LIBRARY} ${CMAKE_C_COMPILER_ID}")
+
+  message(STATUS "Checking for architecture specific unwind library...")
+  message(STATUS "  System processor: ${CMAKE_SYSTEM_PROCESSOR}")
+  message(STATUS "  C Compiler ID: ${CMAKE_C_COMPILER_ID}")
+  if (CMAKE_C_COMPILER_ID STREQUAL zig
+      AND NOT ANDROID
+      AND NOT IOS)
+    message(STATUS "  Using zig compiler, setting unwind library to 'unwind'")
+    set(UNWIND_LIBRARY "unwind" PARENT_SCOPE)
+      set(HAVE_UNWIND_LIB ON)
+      set(unwind_FOUND ON)
     endif()
-else ()
+#   if ((${CMAKE_SYSTEM_PROCESSOR} STREQUAL aarch64
+#        OR ${CMAKE_C_COMPILER_ID} STREQUAL zig)
+#         AND NOT ANDROID
+#         AND NOT IOS)
+#         set(UNWIND_LIBRARY unwind)
+#         set(HAVE_UNWIND_LIB ON)
+#     endif()
+# else ()
     unset(UNWIND_LIBRARY)
 endif ()
