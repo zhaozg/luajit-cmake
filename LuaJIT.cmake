@@ -495,6 +495,10 @@ if(LUAJIT_ENABLE_GDBJIT)
   list(APPEND HOST_CFLAGS -DLUAJIT_ENABLE_GDBJIT)
 endif()
 
+if(LUAJIT_ENABLE_LUA52COMPAT)
+  list(APPEND LJ_DEFINITIONS LUAJIT_ENABLE_LUA52COMPAT)
+endif()
+
 if (MINGW)
   list(APPEND HOST_CFLAGS -malign-double)
 endif()
@@ -588,9 +592,12 @@ add_custom_target(buildvm_arch_h ALL
 )
 
 # Build the buildvm for host platform
+if(LUAJIT_ENABLE_LUA52COMPAT)
+  set(BUILDVM_CFLAGS "-DLUAJIT_ENABLE_LUA52COMPAT")
+endif()
 set(BUILDVM_COMPILER_FLAGS_PATH
   "${CMAKE_CURRENT_BINARY_DIR}/buildvm_flags.config")
-file(WRITE ${BUILDVM_COMPILER_FLAGS_PATH} "${HOST_CFLAGS}")
+file(WRITE ${BUILDVM_COMPILER_FLAGS_PATH} "${BUILDVM_CFLAGS} ${HOST_CFLAGS}")
 
 set(BUILDVM_EXE buildvm)
 if(HOST_WINE)
@@ -598,7 +605,7 @@ if(HOST_WINE)
 endif()
 
 if(NOT CMAKE_CROSSCOMPILING)
-  set(BUILDVM_COMPILER_FLAGS "${HOST_CFLAGS}")
+  set(BUILDVM_COMPILER_FLAGS "${BUILDVM_CFLAGS} ${HOST_CFLAGS}")
   add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/host/buildvm)
   set(BUILDVM_PATH $<TARGET_FILE:buildvm>)
   add_dependencies(buildvm buildvm_arch_h)
@@ -751,10 +758,6 @@ endif()
 
 if(LIBDL_LIBRARIES)
   target_link_libraries(libluajit ${LIBDL_LIBRARIES})
-endif()
-
-if(LUAJIT_ENABLE_LUA52COMPAT)
-  list(APPEND LJ_DEFINITIONS LUAJIT_ENABLE_LUA52COMPAT)
 endif()
 
 list(APPEND LJ_DEFINITIONS LUA_MULTILIB="${LUA_MULTILIB}")
