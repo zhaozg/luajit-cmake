@@ -849,6 +849,9 @@ if (LUAJIT_BUILD_EXE)
     set_target_properties(luajit PROPERTIES
       LINK_FLAGS "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
   endif()
+  if (UNWIND_LIBRARY)
+    target_link_libraries(luajit ${UNWIND_LIBRARY})
+  endif ()
 
   target_compile_definitions(luajit PRIVATE ${LJ_DEFINITIONS})
   file(COPY ${LJ_DIR}/jit DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
