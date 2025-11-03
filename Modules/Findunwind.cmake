@@ -4,7 +4,22 @@
 #  unwind_FOUND - system has libunwind
 #  unwind - cmake target for libunwind
 
-find_library (UNWIND_LIBRARY NAMES unwind DOC "unwind library")
+
+if(CMAKE_CROSSCOMPILING)
+  set(UNWIND_SEARCH_PATH
+    "${CMAKE_SYSROOT}/usr/lib/${CMAKE_ANDROID_ARCH_ABI}"
+    "${CMAKE_SYSROOT}/usr/lib"
+    "${CMAKE_SYSROOT}/lib"
+  )
+  find_library(UNWIND_LIBRARY NAMES unwind
+    PATHS ${UNWIND_SEARCH_PATH}
+    NO_DEFAULT_PATH
+    DOC "unwind library"
+  )
+else()
+  find_library (UNWIND_LIBRARY NAMES unwind DOC "unwind library")
+endif()
+
 include (CheckIncludeFile)
 
 check_include_file (unwind.h HAVE_UNWIND_H)
@@ -12,25 +27,27 @@ if (NOT HAVE_UNWIND_H)
     check_include_file (libunwind.h HAVE_UNWIND_H)
 endif ()
 
-if (CMAKE_SYSTEM_PROCESSOR MATCHES "^arm")
+string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" CMAKE_SYSTEM_PROCESSOR_LC)
+if (CMAKE_SYSTEM_PROCESSOR_LC MATCHES "^arm")
     set(LIBUNWIND_ARCH "arm")
-elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "^aarch64")
+elseif (CMAKE_SYSTEM_PROCESSOR_LC MATCHES "^aarch64" OR
+        CMAKE_SYSTEM_PROCESSOR_LC MATCHES "^arm64")
     set(LIBUNWIND_ARCH "aarch64")
-elseif (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" OR
-        CMAKE_SYSTEM_PROCESSOR STREQUAL "amd64" OR
-        CMAKE_SYSTEM_PROCESSOR STREQUAL "corei7-64")
+elseif (CMAKE_SYSTEM_PROCESSOR_LC STREQUAL "x86_64" OR
+        CMAKE_SYSTEM_PROCESSOR_LC STREQUAL "amd64" OR
+        CMAKE_SYSTEM_PROCESSOR_LC STREQUAL "corei7-64")
     set(LIBUNWIND_ARCH "x86_64")
-elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "^i.86$")
+elseif (CMAKE_SYSTEM_PROCESSOR_LC MATCHES "^i.86$")
     set(LIBUNWIND_ARCH "x86")
-elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "^ppc64")
+elseif (CMAKE_SYSTEM_PROCESSOR_LC MATCHES "^ppc64")
     set(LIBUNWIND_ARCH "ppc64")
-elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "^ppc")
+elseif (CMAKE_SYSTEM_PROCESSOR_LC MATCHES "^ppc")
     set(LIBUNWIND_ARCH "ppc32")
-elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "^mips")
+elseif (CMAKE_SYSTEM_PROCESSOR_LC MATCHES "^mips")
     set(LIBUNWIND_ARCH "mips")
-elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "^hppa")
+elseif (CMAKE_SYSTEM_PROCESSOR_LC MATCHES "^hppa")
     set(LIBUNWIND_ARCH "hppa")
-elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "^ia64")
+elseif (CMAKE_SYSTEM_PROCESSOR_LC MATCHES "^ia64")
     set(LIBUNWIND_ARCH "ia64")
 endif()
 
