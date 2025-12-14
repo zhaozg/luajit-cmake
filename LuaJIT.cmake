@@ -768,6 +768,10 @@ if(LIBDL_LIBRARIES)
   target_link_libraries(libluajit ${LIBDL_LIBRARIES})
 endif()
 
+if (UNWIND_LIBRARY)
+  target_link_libraries(libluajit ${UNWIND_LIBRARY})
+endif ()
+
 list(APPEND LJ_DEFINITIONS LUA_MULTILIB="${LUA_MULTILIB}")
 
 message(STATUS "LJ_DEFINITIONS: ${LJ_DEFINITIONS}")
