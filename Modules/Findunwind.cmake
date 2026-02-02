@@ -1,66 +1,71 @@
 # - Try to find libunwind
 # Once done this will define
 #
-#  unwind_FOUND - system has libunwind
-#  unwind - cmake target for libunwind
+function(check_unwind_tables output_var)
+  # 创建测试目录
+  set(TEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/unwind_check)
+  file(MAKE_DIRECTORY ${TEST_DIR})
 
+  # 测试源代码
+  set(TEST_SRC_FILE ${TEST_DIR}/test.c)
+  file(WRITE ${TEST_SRC_FILE} "
+      extern void b(void);
+      int a(void) { b(); return 0; }
+  ")
 
-if(CMAKE_CROSSCOMPILING)
-  set(UNWIND_SEARCH_PATH
-    "${CMAKE_SYSROOT}/usr/lib/${CMAKE_ANDROID_ARCH_ABI}"
-    "${CMAKE_SYSROOT}/usr/lib"
-    "${CMAKE_SYSROOT}/lib"
+  # 编译测试文件
+  set(OBJ_FILE ${TEST_DIR}/test.o)
+  execute_process(
+      COMMAND ${CMAKE_C_COMPILER} ${CMAKE_C_FLAGS} -c ${TEST_SRC_FILE} -o ${OBJ_FILE}
+      WORKING_DIRECTORY ${TEST_DIR}
+      RESULT_VARIABLE COMPILE_RESULT
+      ERROR_QUIET
+      OUTPUT_QUIET
   )
-  find_library(UNWIND_LIBRARY NAMES unwind
-    PATHS ${UNWIND_SEARCH_PATH}
-    NO_DEFAULT_PATH
-    DOC "unwind library"
-  )
-else()
-  find_library (UNWIND_LIBRARY NAMES unwind DOC "unwind library")
-endif()
 
-include (CheckIncludeFile)
+  if(COMPILE_RESULT EQUAL 0 AND EXISTS ${OBJ_FILE})
+      # 检查目标文件
+      find_program(READELF readelf)
+      find_program(OBJDUMP objdump)
 
-check_include_file (unwind.h HAVE_UNWIND_H)
-if (NOT HAVE_UNWIND_H)
-    check_include_file (libunwind.h HAVE_UNWIND_H)
-endif ()
+      if(READELF)
+          execute_process(
+              COMMAND ${READELF} -S ${OBJ_FILE}
+              OUTPUT_VARIABLE SECTIONS
+              ERROR_QUIET
+          )
+          if(SECTIONS MATCHES "\.eh_frame|\.eh_frame_hdr")
+              set(${output_var} TRUE PARENT_SCOPE)
+          else()
+              set(${output_var} FALSE PARENT_SCOPE)
+          endif()
+      elseif(OBJDUMP)
+          execute_process(
+              COMMAND ${OBJDUMP} -h ${OBJ_FILE}
+              OUTPUT_VARIABLE HEADERS
+              ERROR_QUIET
+          )
+          if(HEADERS MATCHES "\.eh_frame")
+              set(${output_var} TRUE PARENT_SCOPE)
+          else()
+              set(${output_var} FALSE PARENT_SCOPE)
+          endif()
+      else()
+          # 回退方案：检查文件大小（包含 unwind 信息的文件通常更大）
+          file(SIZE ${OBJ_FILE} OBJ_SIZE)
+          if(OBJ_SIZE GREATER 500)  # 阈值可能需要调整
+              set(${output_var} TRUE PARENT_SCOPE)
+          else()
+              set(${output_var} FALSE PARENT_SCOPE)
+          endif()
+      endif()
+  else()
+      set(${output_var} FALSE PARENT_SCOPE)
+  endif()
 
-string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" CMAKE_SYSTEM_PROCESSOR_LC)
-if (CMAKE_SYSTEM_PROCESSOR_LC MATCHES "^arm")
-    set(LIBUNWIND_ARCH "arm")
-elseif (CMAKE_SYSTEM_PROCESSOR_LC MATCHES "^aarch64" OR
-        CMAKE_SYSTEM_PROCESSOR_LC MATCHES "^arm64")
-    set(LIBUNWIND_ARCH "aarch64")
-elseif (CMAKE_SYSTEM_PROCESSOR_LC STREQUAL "x86_64" OR
-        CMAKE_SYSTEM_PROCESSOR_LC STREQUAL "amd64" OR
-        CMAKE_SYSTEM_PROCESSOR_LC STREQUAL "corei7-64")
-    set(LIBUNWIND_ARCH "x86_64")
-elseif (CMAKE_SYSTEM_PROCESSOR_LC MATCHES "^i.86$")
-    set(LIBUNWIND_ARCH "x86")
-elseif (CMAKE_SYSTEM_PROCESSOR_LC MATCHES "^ppc64")
-    set(LIBUNWIND_ARCH "ppc64")
-elseif (CMAKE_SYSTEM_PROCESSOR_LC MATCHES "^ppc")
-    set(LIBUNWIND_ARCH "ppc32")
-elseif (CMAKE_SYSTEM_PROCESSOR_LC MATCHES "^mips")
-    set(LIBUNWIND_ARCH "mips")
-elseif (CMAKE_SYSTEM_PROCESSOR_LC MATCHES "^hppa")
-    set(LIBUNWIND_ARCH "hppa")
-elseif (CMAKE_SYSTEM_PROCESSOR_LC MATCHES "^ia64")
-    set(LIBUNWIND_ARCH "ia64")
-endif()
-
-if (UNWIND_LIBRARY MATCHES "_FOUND")
-    set(UNWIND_LIBRARY unwind)
-    set(HAVE_UNWIND_LIB ON)
-else()
-    find_library (UNWIND_LIBRARY NAMES "unwind-${LIBUNWIND_ARCH}" DOC "unwind library platform")
-    if (UNWIND_LIBRARY MATCHES "_FOUND")
-        set(HAVE_UNWIND_LIB ON)
-        set(UNWIND_LIBRARY unwind-${LIBUNWIND_ARCH})
-    endif ()
-endif()
+  # 清理
+  file(REMOVE_RECURSE ${TEST_DIR})
+endfunction()
 
 if (HAVE_UNWIND_LIB AND HAVE_UNWIND_H)
   set(unwind_FOUND ON)
