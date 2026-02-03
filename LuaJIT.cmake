@@ -837,6 +837,12 @@ if("${TARGET_ARCH}" STREQUAL "Loongarch64")
   target_compile_options(libluajit PRIVATE "-fwrapv")
 endif()
 
+# Hack for mips64
+if ("${TARGET_ARCH}" STREQUAL "mips64" AND
+  "${CMAKE_C_COMPILER_ID}" STREQUAL "zig")
+  target_compile_definitions(libluajit PRIVATE "__clear_cache=//")
+endif()
+
 set(luajit_headers
   ${LJ_DIR}/lauxlib.h
   ${LJ_DIR}/lua.h
@@ -867,6 +873,13 @@ if (LUAJIT_BUILD_EXE)
     set_target_properties(luajit PROPERTIES
       LINK_FLAGS "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
   endif()
+
+  # Hack for mips64
+  if ("${TARGET_ARCH}" STREQUAL "mips64" AND
+    "${CMAKE_C_COMPILER_ID}" STREQUAL "zig")
+    target_compile_definitions(luajit PRIVATE "__clear_cache=//")
+  endif()
+
   if (UNWIND_LIBRARY)
     target_link_libraries(luajit ${UNWIND_LIBRARY})
   endif ()
