@@ -8,6 +8,7 @@ endif
 CMAKE_OPTIONS += -DLUAJIT_DIR=${LUAJIT_DIR}
 
 IOS_ARCH ?= armv7
+OHOS_ARCH ?= arm64-v8a
 
 .PHONY : all build install clean
 
@@ -39,6 +40,12 @@ iOS:
 Android:
 	cmake -H. -Bbuild ${CMAKE_OPTIONS} \
 	-DCMAKE_TOOLCHAIN_FILE=${ANDROID_NDK}/build/cmake/android.toolchain.cmake
+	cmake --build build --config Release
+
+OHOS:
+	cmake -H. -Bbuild ${CMAKE_OPTIONS} \
+	-DCMAKE_TOOLCHAIN_FILE=${HARMONY_NDK}/build/cmake/ohos.toolchain.cmake \
+	-DOHOS_ARCH=$(OHOS_ARCH)
 	cmake --build build --config Release
 
 Windows:

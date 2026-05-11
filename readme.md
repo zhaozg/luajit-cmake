@@ -2,6 +2,28 @@
 
 A flexible cmake builder for LuaJIT.
 
+## External Dependencies
+
+This project requires several external tools for building and cross-compilation:
+
+### Zig
+
+- **Purpose**: Used as a cross-compilation toolchain for building LuaJIT for various targets.
+- **Version**: 0.16.0
+- **Toolchain File**: `Utils/zig.toolchain.cmake`
+- **Installation**: Install Zig from [ziglang.org](https://ziglang.org/)
+
+### Git
+
+- **Purpose**: Required for cloning the repository and managing source code.
+- **Installation**: Usually pre-installed on macOS. For other systems, install from [git-scm.com](https://git-scm.com/)
+
+### Wine
+
+- **Purpose**: Used to run 32-bit Windows executables on non-Windows systems during the build process.
+- **Usage**: Referenced in `Utils/Darwin.wine.cmake` for macOS builds.
+- **Installation**: Install Wine from [winehq.org](https://www.winehq.org/)
+
 ## Build
 
 ### make
@@ -49,6 +71,14 @@ make Android
 
 ```bash
 make Windows
+```
+
+#### HarmonyOS
+
+The library also supports cross-compilation for HarmonyOS. Please refer to the toolchain files in `Utils/` directory for HarmonyOS specific configurations.
+
+```bash
+make OHOS
 ```
 
 #### Note
