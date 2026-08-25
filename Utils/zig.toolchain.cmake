@@ -7,7 +7,7 @@ if(TARGET_SYS AND NOT ZIG_INIT)
   if (DEFINED ENV{ZIG_HACK})
     set(ZIG_HACK $ENV{ZIG_HACK})
   endif()
-  set(LLVM_VERSION 19)
+  set(LLVM_VERSION 20)
   set(CMAKE_SIZEOF_VOID_P 8)
   if(DEFINED ENV{ZIG_TOOLCHAIN_PATH})
     set(ZIG_TOOLCHAIN_PATH $ENV{ZIG_TOOLCHAIN_PATH})
@@ -16,13 +16,46 @@ if(TARGET_SYS AND NOT ZIG_INIT)
     find_program(ZIG_TOOLCHAIN_PATH NAMES zig REQUIRED)
   endif()
 
+  execute_process(
+      COMMAND bash -c "zig version"
+      OUTPUT_VARIABLE ZIG_VERSION
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      RESULT_VARIABLE EXIT_CODE
+  )
+
+  if(NOT EXIT_CODE EQUAL 0)
+      message(FATAL_ERROR
+      "Failed to get Zig version. Ensure Zig are installed.")
+  endif()
+
+  if(ZIG_VERSION MATCHES "0\.16")
+      message(STATUS "Using Zig 0.16")
+  elseif(ZIG_VERSION MATCHES "0\.15")
+      message(STATUS "Using Zig 0.15")
+  elseif(ZIG_VERSION MATCHES "0\.14")
+      message(STATUS "Using Zig 0.14")
+      set(ZIG_IS_014 TRUE)
+  else()
+      message(FATAL_ERROR "Unsupport Zig version: ${ZIG_VERSION}")
+  endif()
+
   #https://github.com/ziglang/zig/wiki/FAQ#why-do-i-get-illegal-instruction-when-using-with-zig-cc-to-build-c-code
   set(BUILDFLAGS "-fno-sanitize=undefined -fno-sanitize-trap=undefined")
   set(BUILDFLAGS "${BUILDFLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
+  set(BUILDFLAGS "${BUILDFLAGS} -fno-strict-float-cast-overflow -fno-stack-protector")
+  if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+  endif()
+  if (${CMAKE_BUILD_TYPE} STREQUAL Debug)
+    set(BUILDFLAGS "-g ${BUILDFLAGS}")
+  else()
+    set(BUILDFLAGS "-O3 -ffast-math ${BUILDFLAGS}")
+  endif()
 
   if(${TARGET_SYS} STREQUAL native)
     set(CMAKE_SIZEOF_VOID_P 8)
     set(CMAKE_SIZEOF_UNSIGNED_SHORT 2)
+    set(BUILDFLAGS "-mcpu=skylake ${BUILDFLAGS}")
   else()
     string(FIND "${TARGET_SYS}" "-" CHAR_POS)
     if(CHAR_POS EQUAL -1)
@@ -32,6 +65,7 @@ if(TARGET_SYS AND NOT ZIG_INIT)
 
     list(GET TARGETS 0 ARCH)
     list(GET TARGETS 1 TARGET)
+    list(GET TARGETS 2 LIBC)
 
     string(SUBSTRING ${TARGET} 0 1 T1)
     string(TOUPPER ${T1} T1)
@@ -45,6 +79,7 @@ if(TARGET_SYS AND NOT ZIG_INIT)
       set(APPLE 1)
       set(UNIX 1)
       set(CMAKE_OSX_DEPLOYMENT_TARGET "10.09")
+      set(CMAKE_INSTALL_NAME_TOOL "install")
     endif()
     if(${TARGET} STREQUAL Linux)
       set(UNIX 1)
@@ -59,6 +94,12 @@ if(TARGET_SYS AND NOT ZIG_INIT)
       set(CMAKE_SIZEOF_VOID_P 8)
     else()
       set(CMAKE_SIZEOF_VOID_P 4)
+    endif()
+    if(${ARCH} STREQUAL x86_64)
+      set(BUILDFLAGS "-mcpu=skylake ${BUILDFLAGS}")
+    endif()
+    if(${ARCH} STREQUAL aarch64)
+      set(BUILDFLAGS "-march=armv8-a+simd+crypto -mtune=generic -funroll-loops -flto ${BUILDFLAGS}")
     endif()
     set(CMAKE_SIZEOF_UNSIGNED_SHORT 2)
     set(CMAKE_CROSSCOMPILING ON)
@@ -108,5 +149,17 @@ if(TARGET_SYS AND NOT ZIG_INIT)
   SET(CMAKE_CXX_ARCHIVE_FINISH ${CMAKE_C_ARCHIVE_FINISH})
   SET(CMAKE_CXX_ARCHIVE_APPEND ${CMAKE_C_ARCHIVE_APPEND})
 
-  message(STATUS "${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}")
+  set(CMAKE_FIND_ROOT_PATH ${CMAKE_SYSROOT})
+  set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+  set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+  set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
+  message(STATUS "summary of zig toollchains build options:
+    Install prefix:  ${CMAKE_INSTALL_PREFIX}
+    Target system:   ${CMAKE_SYSTEM_NAME}
+    Target arch:     ${CMAKE_SYSTEM_PROCESSOR}
+
+    Compiler:
+      C compiler:    ${CMAKE_C_COMPILER} (${CMAKE_C_COMPILER_ID})
+      CFLAGS:        ${CMAKE_C_COMPLIER_FLAGS}
+")
 endif()

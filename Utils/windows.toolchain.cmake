@@ -1,5 +1,13 @@
 set(CMAKE_SYSTEM_NAME Windows)
 
+# zig cc enables UBSan checks by default. LuaJIT's DynASM (dasm_setup)
+# intentionally performs null-pointer arithmetic (buf - pos), which triggers
+# a Zig runtime panic ("applying non-zero offset to null pointer") when the
+# cross-built buildvm.exe is run under Wine. Disable it here, consistently
+# with zig.toolchain.cmake.
+set(CMAKE_C_FLAGS_INIT "-fno-sanitize=undefined -fno-sanitize-trap=undefined")
+set(CMAKE_CXX_FLAGS_INIT "-fno-sanitize=undefined -fno-sanitize-trap=undefined")
+
 IF(NOT DEFINED USE_64BITS)
   IF(DEFINED ENV{USE_64BITS})
     SET(USE_64BITS $ENV{USE_64BITS})
