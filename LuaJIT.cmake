@@ -159,6 +159,12 @@ if (NOT MSVC)
   endif()
 endif (NOT MSVC)
 
+# OpenHarmony and IOS Disable JIT
+# Ref: https://developer.huawei.com/consumer/cn/doc/harmonyos-releases-V5/changelogs-for-all-apps-b031-V5
+if(OHOS OR IOS)
+  set(LUAJIT_DISABLE_JIT ON)
+endif()
+
 set(HOST_CFLAGS)     # Build the buildvm for host platform
 set(TARGET_ARCH)     # x86, x64, arm, arm64, ppc, mips, mips64, loongarch64
 
@@ -301,7 +307,9 @@ endif()
 
 string(FIND "${TARGET_TESTARCH}" "LJ_HASJIT 1" HAVE_FLAG)
 if (MSVC OR NOT HAVE_FLAG EQUAL -1)
-  set(DASM_FLAGS ${DASM_FLAGS} -D JIT)
+  if (NOT LUAJIT_DISABLE_JIT)
+    set(DASM_FLAGS ${DASM_FLAGS} -D JIT)
+  endif()
 endif()
 
 string(FIND "${TARGET_TESTARCH}" "LJ_HASFFI 1" HAVE_FLAG)
@@ -410,10 +418,6 @@ endif()
 ## LJ_NO_SYSTEM: without system(3)
 if(ANDROID OR OHOS OR IOS)
   list(APPEND LJ_DEFINITIONS LJ_NO_SYSTEM=1)
-endif()
-
-if(IOS)
-  set(LUAJIT_DISABLE_JIT ON)
 endif()
 
 set(LJ_NUMMODE_SINGLE 0) # Single-number mode only.
